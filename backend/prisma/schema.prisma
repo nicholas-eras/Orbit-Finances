@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  googleId      String    @unique
+  createdAt     DateTime  @default(now())
+    
+  savingsGoal   Decimal   @default(0)
+  currency      String    @default("BRL")
+    
+  categories    Category[]
+  transactions  Transaction[]
+  recurrences   RecurrenceRule[]
+  incomes       IncomeConfig[]
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  color       String   // Ex: #FF5733 para renderizar no Frontend
+  icon        String?  // Ex: 'mdi-cart' (Material Design Icon ID)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  transactions Transaction[]
+  
+  @@unique([userId, name])
+  recurrenceRules RecurrenceRule[]
+}
+
+
+model IncomeConfig {
+  id          String    @id @default(uuid())
+  amount      Decimal   @db.Decimal(10, 2)
+  frequency   String
+  startDate   DateTime
+  endDate     DateTime?
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+
+model RecurrenceRule {
+  id             String    @id @default(uuid())
+  frequency      String    // DAILY, WEEKLY, MONTHLY, YEARLY, CUSTOM
+  interval       Int       @default(1)
+  startDate      DateTime
+  endDate        DateTime?
+  originalAmount Decimal   @db.Decimal(10, 2)
+  description    String
+  nextRun        DateTime @default(now())
+
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id])
+  
+  transactions   Transaction[] 
+}
+
+
+model Transaction {
+  id              String   @id @default(uuid())
+  amount          Decimal  @db.Decimal(10, 2)
+  date            DateTime
+  description     String
+  isPaid          Boolean  @default(false)
+  type            String   // EXPENSE, INCOME
+  
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  
+  recurrenceId    String?
+  recurrence      RecurrenceRule? @relation(fields: [recurrenceId], references: [id])
+  
+  createdAt       DateTime @default(now())
+}

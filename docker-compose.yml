@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      TZ: America/Sao_Paulo
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - orbit-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    depends_on:
+      - postgres        
+    environment:
+      TZ: America/Sao_Paulo
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${BACKEND_PORT}
+      FRONTEND_URL: ${FRONTEND_URL}
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT}:3000"
+    volumes:
+      - ./backend:/app    
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - orbit-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    environment:
+      TZ: America/Sao_Paulo
+      VITE_API_URL: ${BACKEND_URL}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # - /app/node_modules
+    networks:
+      - orbit-network
+
+volumes:
+  postgres_data:
+  backend_node_modules:
+
+networks:
+  orbit-network:
+    driver: bridge
