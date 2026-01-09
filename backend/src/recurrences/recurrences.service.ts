@@ -44,6 +44,10 @@ export class RecurrencesService {
     return rule;
   }
 
+  async findAll(userId: string) {
+    return this.prisma.recurrenceRule.findMany({ where: { userId } });
+  }
+
   // ======================================================
   // 2. O CRON JOB OTIMIZADO (A "Solução 2")
   // ======================================================
