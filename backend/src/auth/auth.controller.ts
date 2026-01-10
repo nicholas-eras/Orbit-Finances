@@ -14,14 +14,20 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuth(@Req() req) {}
 
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res) {
-    const user = await this.authService.validateGoogleUser(req.user);
-    
-    const jwtResult = await this.authService.login(user);
+@Get('google/callback')
+@UseGuards(AuthGuard('google'))
+async googleAuthRedirect(@Req() req, @Res() res) {
+  const user = await this.authService.validateGoogleUser(req.user);
+  
+  const jwtResult = await this.authService.login(user);
 
-    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
-    return res.redirect(`${frontendUrl}/login/callback?token=${jwtResult.access_token}`);
-  }
+  const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+  const redirectUrl = `${frontendUrl}/login/callback?token=${jwtResult.access_token}`;
+  
+  console.log('🔍 Frontend URL:', frontendUrl);
+  console.log('🔍 Redirect URL completa:', redirectUrl);
+  console.log('🔍 Token:', jwtResult.access_token);
+  
+  return res.redirect(redirectUrl);
+}
 }

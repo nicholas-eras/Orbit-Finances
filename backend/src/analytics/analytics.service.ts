@@ -11,6 +11,7 @@ import {
   isBefore,
   isAfter,
   eachDayOfInterval,
+  max, // Importante para definir onde começa a projeção
 } from 'date-fns';
 
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -24,51 +25,83 @@ type ProjectionPoint = {
 export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
 
-  async getDashboardData(userId: string) {
-    // Datas de Referência
+  /**
+   * Gera os dados do Dashboard respeitando o mês selecionado (month/year).
+   */
+  async getDashboardData(userId: string, month: number, year: number) {
+    // 1. DEFINIÇÃO DE DATAS
+    // A data baseada no filtro do usuário (ex: 01/02/2026)
+    const viewDate = new Date(year, month - 1, 1);
+    
+    // Intervalo do mês visualizado
+    const monthStart = startOfMonth(viewDate);
+    const monthEnd = endOfMonth(viewDate);
+    
+    // A data de "Hoje" real (para separar Realizado de Projetado no gráfico)
     const today = startOfDay(new Date());
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
 
-    // 1. CARGA DE DADOS
-    // Buscamos transações (passado + hoje auto-gerado pelo Cron)
-    // Buscamos regras (apenas para projetar de amanhã em diante)
-    const [allTransactions, activeRecurrences, userSettings] = await Promise.all([
+    // 2. BUSCA DE DADOS (Parallel)
+    const [allTransactions, activeRecurrences, userSettings, previousBalanceAgg] = await Promise.all([
+      // A: Transações apenas do mês selecionado (Extrato)
       this.prisma.transaction.findMany({
-        where: { userId },
+        where: {
+          userId,
+          date: { gte: monthStart, lte: monthEnd },
+        },
         orderBy: { date: 'asc' },
       }),
+
+      // B: Regras de recorrência ativas neste período
+      // (Começam antes do fim do mês E (não terminaram OU terminam depois do começo do mês))
       this.prisma.recurrenceRule.findMany({
-        where: { userId, endDate: null },
+        where: {
+          userId,
+          startDate: { lte: monthEnd },
+          OR: [{ endDate: null }, { endDate: { gte: monthStart } }],
+        },
       }),
+
+      // C: Configurações do usuário (Meta de economia)
       this.prisma.user.findUnique({
         where: { id: userId },
         select: { savingsGoal: true },
       }),
+
+      // D: Saldo Acumulado ANTERIOR ao mês selecionado
+      // Isso é vital: se estou vendo Fevereiro, preciso saber com quanto terminei Janeiro.
+      this.prisma.transaction.aggregate({
+        _sum: { amount: true },
+        where: {
+          userId,
+          date: { lt: monthStart }, // Tudo antes do dia 1 do mês atual
+        },
+      }),
     ]);
 
-    // 2. CÁLCULO DO "REALIZADO" (Mês Atual)
-    // Inclui tudo que está na tabela Transaction dentro deste mês.
-    // Graças ao Cron, isso inclui as contas recorrentes que vencem hoje ou antes.
+    // 3. CÁLCULO DO "REALIZADO" (O que está no banco neste mês)
     let monthRealizedIncome = 0;
     let monthRealizedExpense = 0;
 
     allTransactions.forEach((t) => {
       const val = Number(t.amount);
-      const tDate = new Date(t.date);
-
-      if (tDate >= monthStart && tDate <= monthEnd) {
-        if (val > 0) monthRealizedIncome += val;
-        else monthRealizedExpense += val;
-      }
+      if (val > 0) monthRealizedIncome += val;
+      else monthRealizedExpense += val;
     });
 
-    // 3. PROJEÇÃO DO FUTURO (O que falta acontecer?)
-    // IMPORTANTE: Começamos a projetar de AMANHÃ (addDays(today, 1)).
-    // Motivo: As de hoje já viraram Transactions pelo Cron Job.
+    // 4. CÁLCULO DA PROJEÇÃO (O que falta acontecer)
+    
+    // Define o ponto de corte:
+    // Se o mês é passado: monthStart é antes de hoje, mas monthEnd também.
+    // Se monthEnd < today, não projetamos nada (o mês já acabou).
+    // Se monthStart > today, projetamos desde o dia 1.
+    // Se estamos no mês atual, projetamos de Amanhã (today + 1).
+    
+    const projectionStart = max([monthStart, addDays(today, 1)]);
+
+    // Gera lista de contas futuras baseadas nas regras
     const pendingOccurrences = this.projectRecurrences(
       activeRecurrences,
-      addDays(today, 1),
+      projectionStart,
       monthEnd,
     );
 
@@ -80,42 +113,45 @@ export class AnalyticsService {
       else projectedMonthExpense += o.amount;
     });
 
-    const projectedMonthBalance = projectedMonthIncome + projectedMonthExpense;
+    // Pegamos o saldo que veio do passado (Janeiro, Dezembro, etc...)
+    const startingBalance = Number(previousBalanceAgg._sum.amount || 0);
 
-    // 4. CONSTRUÇÃO DO GRÁFICO (Linha do Tempo Completa)
-    
-    // A. Saldo Inicial (Acumulado de toda a história antes deste mês)
-    let runningBalance = 0;
-    allTransactions.forEach((t) => {
-      if (isBefore(new Date(t.date), monthStart)) {
-        runningBalance += Number(t.amount);
-      }
-    });
+    // CORREÇÃO 1: O saldo realizado (hoje) deve incluir o passado
+    const realizedBalance = startingBalance + monthRealizedIncome + monthRealizedExpense;
 
-    const chartData:ProjectionPoint[] = [];
+    // CORREÇÃO 2: O saldo projetado (fim do mês) deve incluir o passado + o futuro
+    // Antes estava apenas: projectedMonthIncome + projectedMonthExpense
+    const projectedMonthBalance = startingBalance + projectedMonthIncome + projectedMonthExpense;
+
+    // 6. CONSTRUÇÃO DO GRÁFICO (Fluxo de Caixa Diário)
+    // Aqui já estava certo, pois você usava 'runningBalance' que começava com o saldo anterior
+    let runningBalance = startingBalance; // Use a variável que criamos acima pra ficar limpo
+    const chartData: ProjectionPoint[] = [];
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-    // Cache: Gera projeções do mês inteiro para checagem rápida no loop
-    const futureRecurrencesCache = this.projectRecurrences(
+    // Cache: Gera todas as recorrências do mês para checagem rápida no loop
+    const fullMonthRecurrences = this.projectRecurrences(
       activeRecurrences,
       monthStart,
       monthEnd,
     );
 
-    // B. Loop Dia a Dia
+    
+
     for (const day of daysInMonth) {
       let dailyChange = 0;
 
-      // Soma Transações REAIS (Existentes no Banco)
-      // Cobre: Passado, Hoje e eventuais agendamentos futuros manuais
+      // A. Soma o Real (Banco de Dados)
+      // Cobre o passado e agendamentos manuais futuros
       allTransactions
         .filter((t) => isSameDay(new Date(t.date), day))
         .forEach((t) => (dailyChange += Number(t.amount)));
 
-      // Soma Recorrências PROJETADAS (Apenas Futuro)
-      // Cobre: Amanhã em diante. Evita duplicar o que o Cron já gerou hoje.
+      // B. Soma a Projeção (Regras)
+      // Só aplica a regra se o dia for no FUTURO em relação a HOJE.
+      // Se eu olhar o mês passado, isso nunca é true (gráfico fica 100% real).
       if (isAfter(day, today)) {
-        futureRecurrencesCache
+        fullMonthRecurrences
           .filter((r) => isSameDay(r.date, day))
           .forEach((r) => (dailyChange += r.amount));
       }
@@ -128,7 +164,7 @@ export class AnalyticsService {
       });
     }
 
-    // 5. SAÚDE FINANCEIRA
+    // 6. SAÚDE FINANCEIRA
     const health = this.calculateHealth(
       projectedMonthBalance,
       projectedMonthIncome,
@@ -141,15 +177,15 @@ export class AnalyticsService {
         realized: {
           income: monthRealizedIncome,
           expense: monthRealizedExpense,
-          balance: monthRealizedIncome + monthRealizedExpense,
+          balance: realizedBalance, // <--- Agora inclui o histórico
         },
         projected: {
           income: projectedMonthIncome,
           expense: projectedMonthExpense,
-          balance: projectedMonthBalance,
+          balance: projectedMonthBalance, // <--- Agora inclui o histórico
         },
         endOfMonth: {
-          balance: projectedMonthBalance,
+          balance: projectedMonthBalance, // <--- O Card "Saldo Previsto" vai ler isso aqui
         },
       },
       chartData,
@@ -157,13 +193,13 @@ export class AnalyticsService {
     };
   }
 
-  // --- MOTORES AUXILIARES ---
+  // --- MÉTODOS AUXILIARES ---
 
   /**
-   * Gera ocorrências virtuais baseadas nas regras de recorrência.
+   * Expande regras de recorrência (ex: "Semanal") em datas específicas dentro de um intervalo.
    */
   private projectRecurrences(rules: any[], start: Date, end: Date) {
-    // Se a data de início for depois do fim, não há nada a projetar
+    // Se o inicio for depois do fim (ex: vendo mês passado), retorna vazio
     if (isAfter(start, end)) return [];
 
     const occurrences: { date: Date; amount: number; description: string }[] = [];
@@ -172,10 +208,10 @@ export class AnalyticsService {
       const amount = Number(rule.originalAmount);
       let cursor = startOfDay(new Date(rule.startDate));
 
-      // Loop temporal avançando a data conforme a frequência
+      // Loop de tempo: avança o cursor conforme a frequência até passar do fim do mês
       while (isBefore(cursor, end) || isSameDay(cursor, end)) {
         
-        // Só adiciona se o cursor estiver dentro da janela solicitada (start -> end)
+        // Se o cursor estiver dentro da janela desejada [start, end], adiciona à lista
         if (
           (isAfter(cursor, start) || isSameDay(cursor, start)) &&
           (isBefore(cursor, end) || isSameDay(cursor, end))
@@ -187,7 +223,7 @@ export class AnalyticsService {
           });
         }
 
-        // Próxima data
+        // Avança para a próxima data
         switch (rule.frequency) {
           case 'DAILY':
             cursor = addDays(cursor, rule.interval);
@@ -211,7 +247,7 @@ export class AnalyticsService {
   }
 
   /**
-   * Lógica de Diagnóstico Financeiro
+   * Lógica simples para determinar se a saúde financeira está boa.
    */
   private calculateHealth(
     balance: number,
@@ -219,16 +255,17 @@ export class AnalyticsService {
     expense: number,
     goal: number,
   ): 'HEALTHY' | 'WARNING' | 'CRITICAL' {
-    // 1. Vai fechar no vermelho?
+    // Se fechar no vermelho -> Crítico
     if (balance < 0) return 'CRITICAL';
 
     const savings = income - Math.abs(expense);
+    // Evita divisão por zero
     const savingsRate = income > 0 ? savings / income : 0;
 
-    // 2. Está economizando menos de 10% da renda?
+    // Se sobrar menos de 10% -> Atenção
     if (savingsRate < 0.1) return 'WARNING';
     
-    // 3. Não vai bater a meta definida pelo usuário?
+    // Se não atingir a meta do usuário -> Atenção
     if (goal > 0 && savings < goal) return 'WARNING';
 
     return 'HEALTHY';

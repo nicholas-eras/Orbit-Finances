@@ -3,7 +3,6 @@ services:
     image: postgres:15-alpine
     container_name: postgres
     environment:
-      TZ: America/Sao_Paulo
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
@@ -11,7 +10,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - /etc/localtime:/etc/localtime:ro
     networks:
       - orbit-network
 
@@ -23,7 +21,6 @@ services:
     depends_on:
       - postgres        
     environment:
-      TZ: America/Sao_Paulo
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       NODE_ENV: ${NODE_ENV}
       PORT: ${BACKEND_PORT}
@@ -34,7 +31,7 @@ services:
       - "${BACKEND_PORT}:3000"
     volumes:
       - ./backend:/app    
-      - /etc/localtime:/etc/localtime:ro
+      - /app/node_modules
     networks:
       - orbit-network
 
@@ -44,13 +41,12 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     environment:
-      TZ: America/Sao_Paulo
       VITE_API_URL: ${BACKEND_URL}
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      # - /app/node_modules
+      - /app/node_modules
     networks:
       - orbit-network
 

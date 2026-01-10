@@ -5,10 +5,25 @@ const apiUrl = import.meta.env.VITE_API_URL
 <template>
   <div class="login-container">
     <div class="card">
-      <h1>Orbit Finance</h1>
-      <p>Assuma o controle do seu universo financeiro.</p>
+      <div class="logo-wrapper">
+        <img
+          src="/orbit_finances_logo.png"
+          alt="Orbit Finances Logo"
+          class="logo"
+        />
+      </div>
+
+      <p>
+        Assuma o controle do seu universo financeiro.<br />
+        Projete, analise e evolua com clareza.
+      </p>
 
       <a :href="`${apiUrl}/auth/google`" class="btn-google">
+        <img
+          src="https://www.svgrepo.com/show/475656/google-color.svg"
+          alt="Google"
+          class="google-icon"
+        />
         Entrar com Google
       </a>
     </div>
@@ -17,35 +32,102 @@ const apiUrl = import.meta.env.VITE_API_URL
 
 <style scoped lang="scss">
 .login-container {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f172a;
-  color: white;
+  background:
+    radial-gradient(1200px circle at top, #1e293b 0%, #020617 55%),
+    radial-gradient(600px circle at bottom, #0f172a 0%, #020617 60%);
+  color: #e5e7eb;
+  padding: 1.5rem;
+}
 
-  .card {
-    text-align: center;
-    padding: 3rem;
-    background: #1e293b;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+.card {
+  width: 100%;
+  max-width: 420px;
+  padding: 3.5rem 3rem;
+  text-align: center;
+  border-radius: 28px;
 
-    h1 { margin-bottom: 0.5rem; font-size: 2.5rem; }
-    p { margin-bottom: 2rem; color: #94a3b8; }
+  background: rgba(30, 41, 59, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.logo-wrapper {
+  display: flex;
+  justify-content: center;
+
+  .logo {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+
+    filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.35));
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin-bottom: 2.75rem;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  padding: 14px 26px;
+  border-radius: 14px;
+
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  color: #020617;
+  text-decoration: none;
+  font-weight: 600;
+
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  transition: all 0.25s ease;
+
+  &:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
-  .btn-google {
-    display: inline-block;
-    padding: 12px 24px;
-    background: white;
-    color: #333;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: bold;
-    transition: transform 0.2s;
-
-    &:hover { transform: scale(1.05); }
+  &:active {
+    transform: translateY(0) scale(0.99);
   }
+
+  .google-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@keyframes float {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
 }
 </style>

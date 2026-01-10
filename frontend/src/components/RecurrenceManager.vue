@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRecurrenceStore } from '../stores/recurrences';
-// 1. Importar a store de categorias
 import { useCategoryStore } from '../stores/categories';
 
 const store = useRecurrenceStore();
-const categoryStore = useCategoryStore(); // 2. Instanciar
+const categoryStore = useCategoryStore();
 
-// --- FUNÇÕES AUXILIARES ---
+// --- FUNÇÕES AUXILIARES (Mantendo a lógica de fuso correta) ---
 const getTodayString = () => {
   const date = new Date();
   const year = date.getFullYear();
@@ -16,57 +15,52 @@ const getTodayString = () => {
   return `${year}-${month}-${day}`;
 };
 
-// --- STATE ---
-const description = ref('');
-const amount = ref<number | null>(null);
-const frequency = ref('MONTHLY');
-const startDate = ref(getTodayString());
-const selectedCategoryId = ref(''); // 3. Estado para a categoria selecionada
-
-onMounted(async () => {
-  store.fetchRecurrences();
-  // 4. Buscar categorias ao carregar a tela
-  await categoryStore.fetchCategories();
-});
-
-// --- FUNÇÃO PARA GERAR O ISO COM OFFSET (ex: -03:00) ---
 const toLocalIsoString = (date: Date) => {
-  const tzo = -date.getTimezoneOffset(); // O JS inverte o sinal (Brasil retorna 180), então invertemos de volta
+  const tzo = -date.getTimezoneOffset();
   const dif = tzo >= 0 ? '+' : '-';
-  
   const pad = (num: number) => String(num).padStart(2, '0');
-
   return date.getFullYear() +
     '-' + pad(date.getMonth() + 1) +
     '-' + pad(date.getDate()) +
     'T' + pad(date.getHours()) +
     ':' + pad(date.getMinutes()) +
     ':' + pad(date.getSeconds()) +
-    dif + pad(Math.floor(Math.abs(tzo) / 60)) + // Horas do fuso
-    ':' + pad(Math.abs(tzo) % 60);              // Minutos do fuso
+    dif + pad(Math.floor(Math.abs(tzo) / 60)) +
+    ':' + pad(Math.abs(tzo) % 60);
 };
 
-// --- SEU HANDLESAVE ATUALIZADO ---
+// --- STATE ---
+const description = ref('');
+const amount = ref<number | null>(null);
+const startDate = ref(getTodayString());
+const selectedCategoryId = ref('');
+
+// NOVOS CAMPOS PARA FLEXIBILIDADE
+const interval = ref(1); // Padrão: 1
+const frequency = ref('MONTHLY'); // Padrão: Mês
+
+onMounted(async () => {
+  store.fetchRecurrences();
+  await categoryStore.fetchCategories();
+});
+
 async function handleSave() {
   if (!amount.value || !description.value || !startDate.value) return;
 
+  // Lógica de Data Segura
   const [year, month, day] = startDate.value.split('-').map(Number);
-
-  // 1. Cria a data Local (ex: 00:00 do Brasil)
   const localDate = new Date(year!, month! - 1, day, 0, 0, 0);
-
-  // 2. Gera a string com o fuso explícito
-  // Resultado: "2026-01-07T00:00:00-03:00"
   const payloadDate = toLocalIsoString(localDate);
-
-  console.log('Enviando:', payloadDate); // Pode olhar no console, vai estar perfeito
 
   await store.addRecurrence({
     description: description.value,
     amount: amount.value,
+    
+    // AGORA ENVIAMOS A DUPLA DINÂMICA:
     frequency: frequency.value,
-    interval: 1,
-    startDate: payloadDate, // <--- AQUI VAI COM O -03:00
+    interval: interval.value, // Ex: 6 (para semestral)
+    
+    startDate: payloadDate,
     type: 'EXPENSE',
     categoryId: selectedCategoryId.value || undefined
   });
@@ -76,11 +70,27 @@ async function handleSave() {
   amount.value = null;
   startDate.value = getTodayString();
   selectedCategoryId.value = '';
+  interval.value = 1; // Reseta para 1
 }
 
 const formatCurrency = (val: string | number) => {
   return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
+
+// Função para deixar o texto da lista bonito (Ex: "A cada 6 Meses")
+const formatFrequency = (freq: string, int: number) => {
+  const map: Record<string, string> = {
+    'DAILY': 'Dia(s)',   // <--- ADICIONE ISTO
+    'WEEKLY': 'Semana(s)',
+    'MONTHLY': 'Mês(es)',
+    'YEARLY': 'Ano(s)'
+  };
+  const unit = map[freq] || freq;
+  
+  if (int === 1) return unit.replace('(s)', '').replace('(es)', '');
+  return `A cada ${int} ${unit}`;
+};
+
 </script>
 
 <template>
@@ -91,40 +101,35 @@ const formatCurrency = (val: string | number) => {
       <div v-for="rec in store.list" :key="rec.id" class="rec-item">
         <div class="rec-info">
           <strong>{{ rec.description }}</strong>
-          <small>{{ rec.frequency }}</small>
+          <small>{{ formatFrequency(rec.frequency, rec.interval) }}</small>
         </div>
         <div class="rec-amount">{{ formatCurrency(rec.originalAmount) }}</div>
-      </div>
-      
-      <div v-if="store.list.length === 0" class="empty">
-        Sem contas fixas cadastradas.
       </div>
     </div>
 
     <div class="add-form">
       <h4>Nova Recorrência</h4>
       <div class="inputs">
-        <input type="text" v-model="description" placeholder="Ex: Netflix" />
+        <input type="text" v-model="description" placeholder="Ex: Seguro Carro" />
         
         <select v-model="selectedCategoryId" :class="{ 'placeholder': !selectedCategoryId }">
-          <option value="" disabled>Selecione a Categoria</option>
-          <option 
-            v-for="cat in categoryStore.list" 
-            :key="cat.id" 
-            :value="cat.id"
-          >
-            {{ cat.name }}
-          </option>
+          <option value="" disabled>Categoria</option>
+          <option v-for="c in categoryStore.list" :value="c.id" :key="c.id">{{ c.name }}</option>
         </select>
 
         <input type="number" v-model="amount" placeholder="Valor" />
         
-        <select v-model="frequency">
-          <option value="WEEKLY">Semanal</option>
-          <option value="MONTHLY">Mensal</option>
-          <option value="YEARLY">Anual</option>
-        </select>
-        
+        <div class="frequency-control">
+          <span>A cada</span>
+          <input type="number" v-model="interval" min="1" class="interval-input"/>
+          <select v-model="frequency">
+            <option value="DAILY">Dia(s)</option>
+            <option value="WEEKLY">Semana(s)</option>
+            <option value="MONTHLY">Mês(es)</option>
+            <option value="YEARLY">Ano(s)</option>
+          </select>
+        </div>
+
         <input type="date" v-model="startDate" />
         
         <button @click="handleSave">Adicionar</button>
@@ -200,5 +205,23 @@ const formatCurrency = (val: string | number) => {
   text-align: center;
   padding: 20px;
   font-size: 0.9rem;
+}
+
+.frequency-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e293b;
+  
+  span { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; }
+  
+  .interval-input {
+    width: 50px !important;
+    text-align: center;
+  }
+  
+  select {
+    flex: 1;
+  }
 }
 </style>

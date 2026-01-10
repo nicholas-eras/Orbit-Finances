@@ -1,64 +1,118 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useDashboardStore } from '../stores/dashboard';
+import { useTransactionStore } from '../stores/transactions'; // Importar a store de transações
+
+// Componentes
 import CategoryManager from '../components/CategoryManager.vue';
 import TransactionForm from '../components/TransactionForm.vue';
 import TransactionList from '../components/TransactionList.vue';
 import RecurrenceManager from '../components/RecurrenceManager.vue';
 import BalanceChart from '../components/BalanceChart.vue';
+// Novos Componentes
+import ExpenseChart from '../components/ExpenseChart.vue';
+import MonthSelector from '../components/MonthSelector.vue';
 
 const dashStore = useDashboardStore();
+const txStore = useTransactionStore();
 
-onMounted(() => {
-  dashStore.fetchDashboard();
-});
+// --- 1. ESTADO DE DATA (O Maestro) ---
+const currentDate = ref(new Date());
+
+// --- 2. OBSERVADOR DE MUDANÇA DE MÊS ---
+// Sempre que 'currentDate' mudar (pelo MonthSelector), recarregamos tudo.
+watch(currentDate, async (newDate) => {
+  // Convertemos para string ISO simples 'YYYY-MM' ou enviamos o Date, 
+  // dependendo de como suas stores esperam. Vou assumir que aceitam o Date.
+  await Promise.all([
+    dashStore.fetchDashboard(newDate),
+    txStore.fetchTransactions(newDate)
+  ]);
+}, { immediate: true }); // 'immediate' faz rodar na primeira vez que abre a tela
+
 
 const formatMoney = (val: number) => 
   val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+
+// --- 3. LÓGICA DO GRÁFICO DE ROSCA (Doughnut) ---
+// Calcula os gastos baseados na lista de transações carregada
+const expenseChartConfig = computed(() => {
+  const expenses = txStore.list.filter(t => t.type === 'EXPENSE' || Number(t.amount) < 0);
+  
+  // Agrupar por Categoria
+  const grouped: Record<string, { amount: number, color: string }> = {};
+
+  expenses.forEach(tx => {
+    // Se não tiver categoria, agrupa em "Outros"
+    const catName = tx.category?.name || 'Sem Categoria';
+    const catColor = tx.category?.color || '#94a3b8'; // Cinza padrão
+    const val = Math.abs(Number(tx.amount)); // Pega valor positivo para o gráfico
+
+    if (!grouped[catName]) {
+      grouped[catName] = { amount: 0, color: catColor };
+    }
+    grouped[catName].amount += val;
+  });
+
+  return {
+    labels: Object.keys(grouped),
+    data: Object.values(grouped).map(i => i.amount),
+    colors: Object.values(grouped).map(i => i.color)
+  };
+});
 </script>
 
 <template>
   <div class="dashboard-page">
     <header>
-      <h1>Orbit Dashboard</h1>
-      <div class="health-badge" :class="dashStore.health">
-        {{ dashStore.health === 'HEALTHY' ? 'Saudável' : 'Atenção' }}
+      <div class="header-left">
+        <h1>Orbit Dashboard</h1>
+        <div class="health-badge" :class="dashStore.health">
+          {{ dashStore.health === 'HEALTHY' ? 'Saudável' : 'Atenção' }}
+        </div>
       </div>
+      
+      <MonthSelector v-model="currentDate" />
     </header>
 
     <div class="summary-cards">
       <div class="card income">
-        <span>Entradas (mês)</span>
+        <span>Entradas</span>
         <h3>{{ formatMoney(dashStore.summary.projected.income) }}</h3>
       </div>
 
       <div class="card expense">
-        <span>Saídas (mês)</span>
+        <span>Saídas</span>
         <h3>{{ formatMoney(dashStore.summary.projected.expense) }}</h3>
       </div>
 
       <div class="card balance">
-        <span>Saldo previsto (fim do mês)</span>
+        <span>Saldo previsto</span>
         <h3>{{ formatMoney(dashStore.summary.endOfMonth.balance) }}</h3>
       </div>
     </div>
 
-    <div class="summary-cards secondary">
-      <div class="card">
-        <span>Saldo atual</span>
-        <h3>{{ formatMoney(dashStore.summary.realized.balance) }}</h3>
+    <div class="charts-grid">
+      <div class="chart-section main-chart">
+        <h3>Fluxo Projetado (30 Dias)</h3>
+        <BalanceChart v-if="dashStore.chartData.length" :data="dashStore.chartData" />
+        <div v-else class="loading">Sem dados de projeção...</div>
       </div>
-    </div>
 
-    <div class="chart-section">
-      <h3>Fluxo Projetado (30 Dias)</h3>
-      <BalanceChart v-if="dashStore.chartData.length" :data="dashStore.chartData" />
-      <div v-else class="loading">Carregando projeções...</div>
+      <div class="chart-section donut-chart">
+        <h3>Gastos por Categoria</h3>
+        <ExpenseChart 
+          :labels="expenseChartConfig.labels"
+          :data="expenseChartConfig.data"
+          :colors="expenseChartConfig.colors"
+        />
+      </div>
     </div>
 
     <div class="grid-layout">
       <div class="left-col">
-        <TransactionForm @vue:updated="dashStore.fetchDashboard()" />
+        <TransactionForm @vue:updated="dashStore.fetchDashboard(currentDate)" />
         <RecurrenceManager />
       </div>
       <div class="right-col">
@@ -71,7 +125,7 @@ const formatMoney = (val: number) =>
 
 <style scoped lang="scss">
 .dashboard-page {
-  padding: 3rem;
+  padding: 2rem 3rem;
   background: #0f172a;
   min-height: 100vh;
   color: #e2e8f0;
@@ -79,9 +133,17 @@ const formatMoney = (val: number) =>
 
 header {
   display: flex;
+  justify-content: space-between; /* Espalha título e seletor */
   align-items: center;
-  gap: 15px;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 20px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
 
   h1 { margin: 0; }
   
@@ -115,12 +177,25 @@ header {
   }
 }
 
-.chart-section {
-  background: #1e293b;
-  border-radius: 12px;
-  padding: 1rem;
+/* NOVO: Grid dos gráficos */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* O gráfico de linha ocupa mais espaço (2/3) */
+  gap: 20px;
   margin-bottom: 2rem;
-  border: 1px solid #334155;
+
+  .chart-section {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #334155;
+    
+    h3 { 
+      margin: 0 0 15px 10px; 
+      font-size: 1rem; 
+      color: #94a3b8; 
+    }
+  }
 }
 
 .grid-layout {
@@ -130,7 +205,7 @@ header {
 }
 
 @media (max-width: 1000px) {
-  .grid-layout { grid-template-columns: 1fr; }
-  .summary-cards { grid-template-columns: 1fr; }
+  .grid-layout, .charts-grid, .summary-cards { grid-template-columns: 1fr; }
+  header { flex-direction: column; align-items: flex-start; }
 }
 </style>
