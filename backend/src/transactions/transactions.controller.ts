@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, UseGuards, Req, Query } from '@nestjs/comm
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { GetDashboardDto } from './dto/get-dashboard.dto';
 
 @Controller('transactions')
 @UseGuards(AuthGuard('jwt'))
@@ -25,4 +26,21 @@ export class TransactionsController {
     
     return this.transactionsService.findAll(req.user.id, m, y);
   }
+
+  @Get('expenses-by-category')
+  async getExpensesByCategory(
+    @Req() req,
+    @Query() query: GetDashboardDto
+  ) {
+    return this.transactionsService.getExpensesByCategory(req.user.id, query);
+  }
+
+  @Get('bar-chart')
+  getBarChart(
+    @Req() req,
+    @Query() dto: GetDashboardDto
+) {
+  return this.transactionsService.getBarChartData(req.user.id, dto);
+}
+
 }
