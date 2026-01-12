@@ -12,22 +12,34 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) {
+    // Apenas redireciona para o Google
+  }
 
-@Get('google/callback')
-@UseGuards(AuthGuard('google'))
-async googleAuthRedirect(@Req() req, @Res() res) {
-  const user = await this.authService.validateGoogleUser(req.user);
-  
-  const jwtResult = await this.authService.login(user);
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req, @Res() res) {
+    const user = await this.authService.validateGoogleUser(req.user);
+    const jwtResult = await this.authService.login(user);
 
-  const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
-  const redirectUrl = `${frontendUrl}/login/callback?token=${jwtResult.access_token}`;
-  
-  console.log('🔍 Frontend URL:', frontendUrl);
-  console.log('🔍 Redirect URL completa:', redirectUrl);
-  console.log('🔍 Token:', jwtResult.access_token);
-  
-  return res.redirect(redirectUrl);
-}
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+
+    res.cookie('orbit_token', jwtResult.access_token, {
+      httpOnly: true, // não acessível via JS
+      secure: this.configService.get('NODE_ENV') === 'production', // HTTPS apenas em produção
+      sameSite: 'strict', // proteção máxima contra CSRF
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 24, // 1 dia
+    });
+
+    return res.redirect(`${frontendUrl}/dashboard`);
+  }
+
+  @Get('logout')
+  async logout(@Res() res) {
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+
+    res.clearCookie('orbit_token', { path: '/' });
+    return res.redirect(`${frontendUrl}/login`);
+  }
 }

@@ -1,0 +1,93 @@
+/* RecurrenceBox.module.scss */
+
+/* Mude de .recurrence-box para .recurrenceBox */
+.recurrenceBox { 
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  margin-top: 20px;
+}
+
+/* Mude de .rec-item para .recItem */
+.recItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #334155;
+  
+  /* Mude de .rec-info para .recInfo */
+  .recInfo {
+    display: flex;
+    flex-direction: column;
+    small { color: #94a3b8; font-size: 0.75rem; }
+  }
+  
+  /* Mude de .rec-amount para .recAmount */
+  .recAmount { color: #cbd5e1; font-weight: 600; }
+}
+
+/* Mude de .add-form para .addForm */
+.addForm {
+  margin-top: 1.5rem;
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 8px;
+
+  h4 { margin-top: 0; font-size: 0.9rem; color: #94a3b8; }
+
+  .inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    
+    input, select, button {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: white;
+      
+      &.placeholder {
+        color: #94a3b8;
+      }
+    }
+
+    button {
+      grid-column: span 2;
+      background: #8b5cf6;
+      border-color: #8b5cf6;
+      font-weight: bold;
+      cursor: pointer;
+      &:hover { background: #7c3aed; }
+    }
+  }
+}
+
+.empty {
+  color: #64748b;
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9rem;
+}
+
+/* Mude de .frequency-control para .frequencyControl */
+.frequencyControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e293b;
+  
+  span { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; }
+  
+  /* Mude de .interval-input para .intervalInput */
+  .intervalInput {
+    width: 50px !important;
+    text-align: center;
+  }
+  
+  select {
+    flex: 1;
+  }
+}

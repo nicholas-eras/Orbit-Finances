@@ -1,0 +1,58 @@
+.txList {
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  margin-bottom: 20px;
+}
+
+.txItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #334155;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.txDate {
+  color: #64748b;
+  font-size: 0.85rem;
+  width: 50px;
+}
+
+.txInfo {
+  flex: 1;
+  padding: 0 10px;
+}
+
+.txDesc {
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.txCat {
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.txAmount {
+  font-weight: 600;
+}
+
+.isExpense {
+  color: #ef4444;
+}
+
+.isIncome {
+  color: #10b981;
+}
+
+.empty {
+  color: #64748b;
+  text-align: center;
+  padding: 20px;
+}

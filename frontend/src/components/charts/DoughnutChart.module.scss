@@ -1,0 +1,22 @@
+.chartContainer {
+  position: relative;
+  height: 250px;
+  width: 100%;
+}
+
+.noData {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  background: rgba(30, 41, 59, 0.8);
+}
+
+// <DoughnutChart
+//   labels={['Alimentação', 'Lazer', 'Transporte']}
+//   data={[1200, 800, 400]}
+//   colors={['#22c55e', '#3b82f6', '#f97316']}
+// />

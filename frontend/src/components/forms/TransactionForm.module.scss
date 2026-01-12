@@ -1,0 +1,69 @@
+.txForm {
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  margin-bottom: 20px;
+}
+
+.typeToggle {
+  display: flex;
+  margin-bottom: 1rem;
+  gap: 10px;
+
+  button {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: bold;
+  }
+}
+
+.active.btnExpense {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.active.btnIncome {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  input, select {
+    padding: 10px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: white;
+    border-radius: 6px;
+  }
+}
+
+.placeholder {
+  color: #94a3b8;
+}
+
+.btnSave {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 5px;
+
+  &:hover {
+    background: #2563eb;
+  }
+}
