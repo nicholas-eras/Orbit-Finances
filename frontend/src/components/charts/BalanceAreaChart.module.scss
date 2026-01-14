@@ -1,4 +1,7 @@
 .chartContainer {
   width: 100%;
-  padding: 10px 0;
+  position: relative;
+  /* Garante que o gráfico não estoure o container pai */
+  overflow: hidden; 
+  padding: 0; 
 }
