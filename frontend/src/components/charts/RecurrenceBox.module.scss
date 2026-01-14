@@ -38,6 +38,8 @@
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: flex-start; /* Alinha tudo à esquerda */
+    border-bottom: 1px solid #334155;
+    gap:0;
   }
 
   .recInfo {
@@ -82,11 +84,9 @@
 
     /* Mobile: Valor e botão ocupam largura total e se separam */
     @media (max-width: 480px) {
+      gap: 4px;
       width: 100%;
       justify-content: space-between;
-      margin-top: 4px;
-      padding-top: 8px;
-      border-top: 1px dashed #334155; /* Separador visual sutil no mobile */
     }
   }
 

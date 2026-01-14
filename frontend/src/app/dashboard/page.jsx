@@ -101,6 +101,16 @@ export default function DashboardPage() {
   const formatMoney = (val) =>
     Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  const percentage = Math.abs(
+    (100 * summary.projected.expense) / summary.projected.income
+  );
+
+  const getColorByPercentage = (value) => {
+    if (value <= 50) return '#10b981';   // verde até 50%
+    if (value <= 80) return '#facc15';   // amarelo de 51% a 80%
+    return '#ef4444';                    // vermelho acima de 80%
+  };
+
   return (
     <div className={styles.dashboardPage}>
       <header>
@@ -127,6 +137,14 @@ export default function DashboardPage() {
         <div className={`${styles.card} ${styles.expense}`}>
           <span>Saídas</span>
           <h3>{formatMoney(summary.projected.expense)}</h3>
+          <small
+            style={{
+              fontSize: '0.8rem',
+              color: getColorByPercentage(percentage),
+            }}
+          >
+            {percentage.toFixed(1)}%
+          </small>
         </div>
         <div className={`${styles.card} ${styles.balance}`}>
           <span>Saldo Final Projetado</span>

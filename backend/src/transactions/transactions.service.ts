@@ -4,7 +4,9 @@ import { GetDashboardDto } from './dto/get-dashboard.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { 
   addDays, addWeeks, addMonths, addYears, 
-  isWithinInterval, parseISO, startOfDay, endOfDay, format 
+  isWithinInterval, parseISO, startOfDay, endOfDay, format, 
+  startOfMonth,
+  endOfMonth
 } from 'date-fns';
 
 @Injectable()
@@ -222,18 +224,86 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, month?: number, year?: number) {
-    const where: any = { userId };
+    // 1. Definir o intervalo de busca
+    let start = new Date(0); // Início dos tempos se não passar filtro
+    let end = new Date(2100, 0, 1); // Futuro distante
+
     if (month && year) {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
-      where.date = { gte: startDate, lt: endDate };
+      const dateRef = new Date(year, month - 1, 1); // Javascript conta meses 0-11
+      start = startOfMonth(dateRef);
+      end = endOfMonth(dateRef);
     }
-    return this.prisma.transaction.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      take: month && year ? undefined : 20, 
-      include: { category: true }
+
+    // 2. Buscar Transações REAIS (Do banco)
+    const realTransactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        date: { gte: start, lte: end },
+      },
+      include: { category: true },
     });
+
+    // Adiciona uma flag para o front saber que é real
+    const mappedReal = realTransactions.map(tx => ({
+      ...tx,
+      isProjected: false, 
+      virtualId: tx.id // Usa o ID real
+    }));
+
+    // 3. Buscar Recorrências para PROJETAR (Futuro)
+    const recurrences = await this.prisma.recurrenceRule.findMany({ 
+      where: { userId },
+      include: { category: true } // Importante trazer a categoria
+    });
+
+    const projectedTransactions: any[] = [];
+
+    for (const rule of recurrences) {
+      let cursor = rule.nextRun; // Começa a projetar da próxima execução agendada
+
+      // Se a regra já "passou" do fim do mês selecionado, nem processa
+      if (cursor > end) continue;
+
+      // Loop de projeção (Similar ao do gráfico)
+      while (cursor <= end) {
+        // Só adiciona se cair DENTRO do mês que o usuário pediu
+        // E se for maior ou igual ao nextRun (para não duplicar passado)
+        if (cursor >= start) {
+            
+          projectedTransactions.push({
+            // Cria um ID falso para o React não reclamar da Key
+            id: `proj_${rule.id}_${format(cursor, 'yyyyMMdd')}`, 
+            virtualId: null, // Indica que não tem ID no banco ainda
+            description: rule.description, // Opcional: concatenar no texto
+            amount: Number(rule.originalAmount),
+            type: Number(rule.originalAmount) < 0 ? 'EXPENSE' : 'INCOME',
+            date: new Date(cursor), // Clona a data
+            categoryId: rule.categoryId,
+            category: rule.category, // Passa a categoria da regra
+            isPaid: false, // Futuro = não pago
+            isProjected: true, // A FLAG MÁGICA
+            recurrenceId: rule.id
+          });
+        }
+
+        // Avança data
+        switch (rule.frequency) {
+          case 'DAILY': cursor = addDays(cursor, rule.interval); break;
+          case 'WEEKLY': cursor = addWeeks(cursor, rule.interval); break;
+          case 'MONTHLY': cursor = addMonths(cursor, rule.interval); break;
+          case 'YEARLY': cursor = addYears(cursor, rule.interval); break;
+          default: cursor = addMonths(cursor, 1);
+        }
+      }
+    }
+
+    // 4. Unir e Ordenar
+    // Junta as reais + projetadas e ordena por data descrescente (mais recente primeiro)
+    const allItems = [...mappedReal, ...projectedTransactions].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+    return allItems;
   }
 
   async remove(id: string, userId: string) {

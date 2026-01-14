@@ -78,7 +78,7 @@ export default function DoughnutChart({ labels, data, colors }) {
           const total = ctx.chart._metasets[ctx.datasetIndex].total;
           const percentage = (value / total * 100).toFixed(0); 
           
-          if (percentage < 5) return null;
+          if (percentage < 1) return null;
 
           return `${percentage}%`;
         },

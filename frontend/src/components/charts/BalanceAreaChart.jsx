@@ -14,7 +14,11 @@ const ApexChart = dynamic(() => import('react-apexcharts'), {
    HELPERS (Mantidos da versão anterior)
 ---------------------------- */
 const safeTimestamp = (val) => {
-  const date = new Date(val);
+  // SE a data vier apenas como "YYYY-MM-DD", adicionamos T00:00:00
+  // Isso força o browser a criar a data no fuso horário LOCAL, não em UTC.
+  const dateStr = val.length === 10 ? `${val}T00:00:00` : val;
+  
+  const date = new Date(dateStr);
   return isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
@@ -153,6 +157,7 @@ export default function BalanceAreaChart({ data }) {
         axisTicks: { show: false },
         tickAmount: 6, // Reduz drasticamente ticks no mobile
         labels: { 
+          datetimeUTC: false, // <--- O PULO DO GATO
           style: { colors: '#94a3b8', fontSize: isMobile ? '10px' : '12px' },
           rotate: 0, // Nunca rotacionar no mobile
           hideOverlappingLabels: true,
@@ -190,7 +195,7 @@ export default function BalanceAreaChart({ data }) {
         padding: {
           // Aumenta padding lateral no mobile para as etiquetas não cortarem
           left: isMobile ? 15 : 10, 
-          right: isMobile ? 15 : 10,
+          right: isMobile ? 20 : 30,
           bottom: 0,
           top: 0
         }
