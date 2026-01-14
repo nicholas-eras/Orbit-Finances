@@ -28,7 +28,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${BACKEND_PORT}:3000"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
       - ./backend:/app    
       - /app/node_modules
