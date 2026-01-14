@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Delete, Param } from '@nestjs/common';
 import { RecurrencesService } from './recurrences.service';
 import { CreateRecurrenceDto } from './dto/create-recurrence.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -16,5 +16,10 @@ export class RecurrencesController {
   @Get()
   findAll(@Req() req) {
     return this.recurrencesService.findAll(req.user.id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req) {
+    return this.recurrencesService.remove(id, req.user.id);
   }
 }

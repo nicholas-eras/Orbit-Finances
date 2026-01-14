@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GetDashboardDto } from './dto/get-dashboard.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { 
   addDays, addWeeks, addMonths, addYears, 
-  isWithinInterval, parseISO, startOfDay, endOfDay 
+  isWithinInterval, parseISO, startOfDay, endOfDay, format 
 } from 'date-fns';
 
 @Injectable()
@@ -12,65 +12,113 @@ export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
   // ===========================================================================
-  // 1. DADOS PARA O GRÁFICO (Separado em 2 Datasets)
+  // 1. DADOS PARA O GRÁFICO DE ÁREA (Time Series: Evolução do Saldo)
   // ===========================================================================
+  // Retorna um array puro: [{ x: '2023-01-01...', y: 1500 }, ...]
   async getBarChartData(userId: string, dto: GetDashboardDto) {
-    const summaryMap = await this._calculateBalanceByCategory(userId, dto);
+    const start = startOfDay(parseISO(dto.startDate));
+    const end = endOfDay(parseISO(dto.endDate));
+    // Mapa para agrupar o "Fluxo Líquido" de cada dia
+    // Chave: 'YYYY-MM-DD', Valor: number (positivo ou negativo)
+    const dailyChangeMap = new Map<string, number>();
 
-    const labels: string[] = [];
-    const expenseData: number[] = [];
-    const incomeData: number[] = [];
-    const backgroundColors: string[] = [];
+    // Função auxiliar para somar valor no dia
+    const addToDate = (date: Date, amount: number) => {
+      const key = format(date, 'yyyy-MM-dd');
+      const current = dailyChangeMap.get(key) || 0;
+      dailyChangeMap.set(key, current + amount);
+    };
 
-    // Filtra categorias que tiveram alguma movimentação (entrada OU saída)
-    const activeItems = Array.from(summaryMap.values())
-      // Ordena pelo volume total (quem teve mais movimentação aparece primeiro)
-      .sort((a, b) => (b.expense + b.income) - (a.expense + a.income));
-
-    activeItems.forEach(item => {
-      labels.push(item.name);
-      // Dataset 1: Despesas (sempre positivo para o gráfico, ou negativo se preferir visual "espelhado")
-      expenseData.push(Number(item.expense.toFixed(2))); 
-      // Dataset 2: Receitas
-      incomeData.push(Number(item.income.toFixed(2)));
-      // Cor da categoria
-      backgroundColors.push(item.color);
+    // A. Buscar Transações Reais no Período
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        date: { gte: start, lte: end },
+      },
     });
 
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Despesas',
-          data: expenseData,
-          backgroundColor: '#ef4444', // Vermelho fixo para despesas (ou use backgroundColors se quiser colorido)
-          borderRadius: 4,
-          stack: 'stack1' // (Opcional) Deixa uma barra do lado da outra ou empilhada
-        },
-        {
-          label: 'Entradas',
-          data: incomeData,
-          backgroundColor: '#10b981', // Verde fixo para entradas
-          borderRadius: 4,
-          stack: 'stack2'
+    transactions.forEach((tx) => {
+      let val = Number(tx.amount);
+      // Garante sinal correto baseando-se no tipo
+      if (tx.type === 'EXPENSE') {
+        val = -Math.abs(val);
+      } else if (tx.type === 'INCOME') {
+        val = Math.abs(val);
+      }
+      // Se não tiver type (transferências etc), assume o sinal que veio do banco
+
+      addToDate(tx.date, val);
+    });
+
+    // B. Buscar Recorrências (Projeção) e expandir nas datas
+    const recurrences = await this.prisma.recurrenceRule.findMany({ where: { userId } });
+
+    for (const rule of recurrences) {
+      let cursor = rule.startDate;
+      
+      // Tenta inferir se é despesa ou receita pelo valor original
+      let ruleVal = Number(rule.originalAmount);
+      // Lógica de segurança de sinal (opcional, depende de como você grava a regra)
+      // Se você grava a regra sempre positiva e usa categoryId para saber, precisaria verificar aqui.
+      // Assumindo que: valor negativo = despesa, valor positivo = entrada.
+      
+      while (cursor <= end) {
+        const inInterval = isWithinInterval(cursor, { start, end });
+        const isFuture = cursor >= rule.nextRun; // Só projeta se ainda não virou transação real
+
+        if (inInterval && isFuture) {
+           addToDate(cursor, ruleVal);
         }
-      ]
-    };
+
+        // Avançar data conforme frequência
+        switch (rule.frequency) {
+          case 'DAILY': cursor = addDays(cursor, rule.interval); break;
+          case 'WEEKLY': cursor = addWeeks(cursor, rule.interval); break;
+          case 'MONTHLY': cursor = addMonths(cursor, rule.interval); break;
+          case 'YEARLY': cursor = addYears(cursor, rule.interval); break;
+          default: cursor = addMonths(cursor, 1);
+        }
+      }
+    }
+
+    // C. Construir o Array Final (Acumulado Dia a Dia)
+    // O gráfico de área geralmente mostra o SALDO no tempo, não apenas a movimentação do dia.
+    const result: { x: string; y: number }[] = [];
+    
+    // Saldo inicial (pode vir de uma query de saldo anterior se quiser precisão total)
+    let currentRunningBalance = 0; 
+
+    let loopDate = start;
+    while (loopDate <= end) {
+      const key = format(loopDate, 'yyyy-MM-dd');
+      const dayNetChange = dailyChangeMap.get(key) || 0;
+
+      currentRunningBalance += dayNetChange;
+
+      result.push({
+        x: loopDate.toISOString(), // Formato ISO para o ApexCharts
+        y: Number(currentRunningBalance.toFixed(2))
+      });
+
+      loopDate = addDays(loopDate, 1);
+    }
+
+    return result; 
   }
 
   // ===========================================================================
-  // 2. LISTA SIMPLES (Retorna os dois valores brutos)
+  // 2. LISTA POR CATEGORIA (Mantida lógica original)
   // ===========================================================================
   async getExpensesByCategory(userId: string, dto: GetDashboardDto) {
     const summaryMap = await this._calculateBalanceByCategory(userId, dto);
 
-    // Retorna array ordenado por despesa
+    // Retorna array ordenado por despesa (maior gasto primeiro)
     return Array.from(summaryMap.values())
       .sort((a, b) => b.expense - a.expense);
   }
 
   // ===========================================================================
-  // 3. LÓGICA CORE (Separando Income e Expense)
+  // 3. HELPER LÓGICA CORE (Para Categorias)
   // ===========================================================================
   private async _calculateBalanceByCategory(userId: string, dto: GetDashboardDto) {
     const start = startOfDay(parseISO(dto.startDate));
@@ -79,7 +127,6 @@ export class TransactionsService {
     // A. Categorias
     const categories = await this.prisma.category.findMany({ where: { userId } });
 
-    // Mapa agora guarda { expense, income }
     const summary = new Map<string, { 
       name: string; 
       color: string; 
@@ -93,11 +140,10 @@ export class TransactionsService {
     });
     summary.set('uncategorized', { name: 'Sem Categoria', color: '#94a3b8', expense: 0, income: 0 });
 
-    // B. Transações Reais (TODAS: Expense e Income)
+    // B. Transações
     const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
-        // REMOVI O FILTRO 'type: EXPENSE'. Agora pega tudo.
         date: { gte: start, lte: end },
       },
     });
@@ -108,25 +154,22 @@ export class TransactionsService {
       
       if (entry) {
         const val = Number(tx.amount);
-        if (val < 0) {
-          // É Despesa
+        if (val < 0 || tx.type === 'EXPENSE') {
           entry.expense += Math.abs(val);
         } else {
-          // É Receita
           entry.income += val;
         }
       }
     });
 
-    // C. Recorrências (Projeção)
+    // C. Recorrências
     const recurrences = await this.prisma.recurrenceRule.findMany({ where: { userId } });
 
     for (const rule of recurrences) {
       let cursor = rule.startDate;
-      
-      // Verifica se o valor original da regra é negativo (despesa) ou positivo (entrada)
       const ruleVal = Number(rule.originalAmount);
-      const isExpense = ruleVal < 0;
+      // Se ruleVal < 0 é despesa
+      const isExpense = ruleVal < 0; 
 
       while (cursor <= end) {
         const inInterval = isWithinInterval(cursor, { start, end });
@@ -144,7 +187,6 @@ export class TransactionsService {
            }
         }
 
-        // Lógica de Avanço de Data
         switch (rule.frequency) {
           case 'DAILY': cursor = addDays(cursor, rule.interval); break;
           case 'WEEKLY': cursor = addWeeks(cursor, rule.interval); break;
@@ -158,7 +200,9 @@ export class TransactionsService {
     return summary; 
   }
 
-  // ... CRUD MANTIDO IGUAL ...
+  // ===========================================================================
+  // CRUD PADRÃO
+  // ===========================================================================
   async create(userId: string, dto: CreateTransactionDto) {
     let finalAmount = Math.abs(dto.amount);
     if (dto.type === 'EXPENSE') finalAmount = -finalAmount;
@@ -190,5 +234,20 @@ export class TransactionsService {
       take: month && year ? undefined : 20, 
       include: { category: true }
     });
+  }
+
+  async remove(id: string, userId: string) {
+    const result = await this.prisma.transaction.deleteMany({
+      where: {
+        id: id,
+        userId: userId
+      }
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Transação não encontrada.');
+    }
+
+    return { message: 'Transação removida com sucesso' };
   }
 }

@@ -3,15 +3,19 @@
 
 import { useEffect, useState } from 'react';
 import styles from './TransactionList.module.scss';
-import { getTransactions } from '../../api/transactions';
+import { getTransactions, deleteTransaction } from '../../api/transactions';
 
-export default function TransactionList({ month, year }) {
+// Adicionado prop 'transactions'
+export default function TransactionList({ month, year, onUpdate, transactions }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // ==========================
-  // Busca transações do backend
+  // Lógica Híbrida:
+  // 1. Se receber 'transactions' via props, usa ela (Sincronizado com Pai).
+  // 2. Se não receber, busca sozinho (Stand-alone).
   // ==========================
+  
   async function fetchTransactions() {
     try {
       setLoading(true);
@@ -25,11 +29,41 @@ export default function TransactionList({ month, year }) {
   }
 
   useEffect(() => {
-    fetchTransactions();
-  }, [month, year]);
+    // Se a lista veio do pai, apenas atualizamos o estado local
+    if (transactions) {
+      setList(transactions);
+      setLoading(false);
+    } else {
+      // Caso contrário, buscamos na API
+      fetchTransactions();
+    }
+  }, [month, year, transactions]); // Adicionado 'transactions' nas dependências
 
   // ==========================
-  // Formata valor como moeda
+  // Deletar Transação
+  // ==========================
+  async function handleDelete(id, description) {
+    const confirmed = window.confirm(`Deseja excluir a transação "${description}"?`);
+    
+    if (confirmed) {
+      try {
+        await deleteTransaction(id);
+        
+        // Remove localmente (Optimistic Update)
+        setList(prev => prev.filter(tx => tx.id !== id));
+
+        // Avisa o Pai (Dashboard) para recalcular saldos, gráficos E mandar a lista nova
+        if (onUpdate) onUpdate();
+
+      } catch (err) {
+        console.error('Erro ao deletar:', err);
+        alert('Erro ao excluir transação.');
+      }
+    }
+  }
+
+  // ==========================
+  // Formatações
   // ==========================
   const formatCurrency = (val) => {
     return Number(val).toLocaleString('pt-BR', {
@@ -38,9 +72,6 @@ export default function TransactionList({ month, year }) {
     });
   };
 
-  // ==========================
-  // Formata data no padrão DD/MM
-  // ==========================
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const isoDate = dateStr.toString().split('T')[0];
@@ -60,27 +91,39 @@ export default function TransactionList({ month, year }) {
 
       {list.map(tx => (
         <div key={tx.id} className={styles.txItem}>
-          <div className={styles.txDate}>{formatDate(tx.date)}</div>
+          <div className={styles.leftGroup}>
+            <div className={styles.txDate}>{formatDate(tx.date)}</div>
 
-          <div className={styles.txInfo}>
-            <div className={styles.txDesc}>{tx.description}</div>
+            <div className={styles.txInfo}>
+              <div className={styles.txDesc}>{tx.description}</div>
 
-            {tx.category && (
-              <div
-                className={styles.txCat}
-                style={{ color: tx.category.color }}
-              >
-                {tx.category.name}
-              </div>
-            )}
+              {tx.category && (
+                <div
+                  className={styles.txCat}
+                  style={{ color: tx.category.color }}
+                >
+                  {tx.category.name}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div
-            className={`${styles.txAmount} ${
-              Number(tx.amount) < 0 ? styles.isExpense : styles.isIncome
-            }`}
-          >
-            {formatCurrency(tx.amount)}
+          <div className={styles.rightGroup}>
+            <div
+              className={`${styles.txAmount} ${
+                Number(tx.amount) < 0 || tx.type === 'EXPENSE' ? styles.isExpense : styles.isIncome
+              }`}
+            >
+              {formatCurrency(tx.amount)}
+            </div>
+
+            <button 
+              className={styles.deleteBtn}
+              onClick={() => handleDelete(tx.id, tx.description)}
+              title="Excluir"
+            >
+              🗑️
+            </button>
           </div>
         </div>
       ))}

@@ -9,4 +9,4 @@ RUN npm install
 
 COPY . .
 
-CMD ["sh", "-c", "npx prisma migrate dev && npm run start:dev"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:dev"]

@@ -17,3 +17,7 @@ export async function getCategories() {
     method: 'GET',
   });
 }
+
+export async function deleteCategory(id) {
+  return api(`/categories/${id}`, { method: 'DELETE' });
+}

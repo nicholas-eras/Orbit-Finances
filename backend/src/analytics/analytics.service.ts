@@ -11,7 +11,7 @@ import {
   isBefore,
   isAfter,
   eachDayOfInterval,
-  max, // Importante para definir onde começa a projeção
+  max,
 } from 'date-fns';
 
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -25,60 +25,59 @@ type ProjectionPoint = {
 export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
 
-  /**
-   * Gera os dados do Dashboard respeitando o mês selecionado (month/year).
-   */
   async getDashboardData(userId: string, month: number, year: number) {
-    // 1. DEFINIÇÃO DE DATAS
-    // A data baseada no filtro do usuário (ex: 01/02/2026)
     const viewDate = new Date(year, month - 1, 1);
-    
-    // Intervalo do mês visualizado
     const monthStart = startOfMonth(viewDate);
     const monthEnd = endOfMonth(viewDate);
-    
-    // A data de "Hoje" real (para separar Realizado de Projetado no gráfico)
     const today = startOfDay(new Date());
 
-    // 2. BUSCA DE DADOS (Parallel)
+    // 1. BUSCA NO BANCO
     const [allTransactions, activeRecurrences, userSettings, previousBalanceAgg] = await Promise.all([
-      // A: Transações apenas do mês selecionado (Extrato)
+      // Transações do Mês (Realizadas)
       this.prisma.transaction.findMany({
         where: {
           userId,
           date: { gte: monthStart, lte: monthEnd },
         },
         orderBy: { date: 'asc' },
+        include: { category: true },
       }),
 
-      // B: Regras de recorrência ativas neste período
-      // (Começam antes do fim do mês E (não terminaram OU terminam depois do começo do mês))
+      // Regras de Recorrência
       this.prisma.recurrenceRule.findMany({
         where: {
           userId,
           startDate: { lte: monthEnd },
-          OR: [{ endDate: null }, { endDate: { gte: monthStart } }],
+          OR: [{ endDate: null }, { endDate: { gte: today } }],
         },
+        include: { category: true },
       }),
 
-      // C: Configurações do usuário (Meta de economia)
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { savingsGoal: true },
-      }),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { savingsGoal: true } }),
 
-      // D: Saldo Acumulado ANTERIOR ao mês selecionado
-      // Isso é vital: se estou vendo Fevereiro, preciso saber com quanto terminei Janeiro.
       this.prisma.transaction.aggregate({
         _sum: { amount: true },
-        where: {
-          userId,
-          date: { lt: monthStart }, // Tudo antes do dia 1 do mês atual
-        },
+        where: { userId, date: { lt: monthStart } },
       }),
     ]);
 
-    // 3. CÁLCULO DO "REALIZADO" (O que está no banco neste mês)
+    // 2. CÁLCULO DO GAP (Apenas para ajustar o SALDO INICIAL)
+    let startingBalance = Number(previousBalanceAgg._sum.amount || 0);
+    
+    // O Gap não deve ir para o gráfico de categorias, apenas para o saldo
+    if (isAfter(monthStart, today)) {
+      const gapStart = addDays(today, 1);
+      const gapEnd = addDays(monthStart, -1);
+
+      if (isBefore(gapStart, gapEnd) || isSameDay(gapStart, gapEnd)) {
+        const gap = this.projectRecurrences(activeRecurrences, gapStart, gapEnd);
+        gap.forEach(occ => {
+          startingBalance += occ.amount; 
+        });
+      }
+    }
+
+    // 3. MOVIMENTAÇÃO DO MÊS (REALIZADO)
     let monthRealizedIncome = 0;
     let monthRealizedExpense = 0;
 
@@ -88,17 +87,10 @@ export class AnalyticsService {
       else monthRealizedExpense += val;
     });
 
-    // 4. CÁLCULO DA PROJEÇÃO (O que falta acontecer)
-    
-    // Define o ponto de corte:
-    // Se o mês é passado: monthStart é antes de hoje, mas monthEnd também.
-    // Se monthEnd < today, não projetamos nada (o mês já acabou).
-    // Se monthStart > today, projetamos desde o dia 1.
-    // Se estamos no mês atual, projetamos de Amanhã (today + 1).
-    
+    // 4. MOVIMENTAÇÃO DO MÊS (PROJETADO)
     const projectionStart = max([monthStart, addDays(today, 1)]);
-
-    // Gera lista de contas futuras baseadas nas regras
+    
+    // Apenas ocorrências DENTRO do mês selecionado
     const pendingOccurrences = this.projectRecurrences(
       activeRecurrences,
       projectionStart,
@@ -113,43 +105,25 @@ export class AnalyticsService {
       else projectedMonthExpense += o.amount;
     });
 
-    // Pegamos o saldo que veio do passado (Janeiro, Dezembro, etc...)
-    const startingBalance = Number(previousBalanceAgg._sum.amount || 0);
+    const monthResult = projectedMonthIncome + projectedMonthExpense;
+    const finalBalance = startingBalance + monthResult;
 
-    // CORREÇÃO 1: O saldo realizado (hoje) deve incluir o passado
-    const realizedBalance = startingBalance + monthRealizedIncome + monthRealizedExpense;
-
-    // CORREÇÃO 2: O saldo projetado (fim do mês) deve incluir o passado + o futuro
-    // Antes estava apenas: projectedMonthIncome + projectedMonthExpense
-    const projectedMonthBalance = startingBalance + projectedMonthIncome + projectedMonthExpense;
-
-    // 6. CONSTRUÇÃO DO GRÁFICO (Fluxo de Caixa Diário)
-    // Aqui já estava certo, pois você usava 'runningBalance' que começava com o saldo anterior
-    let runningBalance = startingBalance; // Use a variável que criamos acima pra ficar limpo
+    // 5. GRÁFICO DIÁRIO
+    let runningBalance = startingBalance;
     const chartData: ProjectionPoint[] = [];
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
-    // Cache: Gera todas as recorrências do mês para checagem rápida no loop
-    const fullMonthRecurrences = this.projectRecurrences(
-      activeRecurrences,
-      monthStart,
-      monthEnd,
-    );
-
     
+    const fullMonthRecurrences = this.projectRecurrences(activeRecurrences, monthStart, monthEnd);
 
     for (const day of daysInMonth) {
       let dailyChange = 0;
 
-      // A. Soma o Real (Banco de Dados)
-      // Cobre o passado e agendamentos manuais futuros
+      // Soma Real
       allTransactions
         .filter((t) => isSameDay(new Date(t.date), day))
         .forEach((t) => (dailyChange += Number(t.amount)));
 
-      // B. Soma a Projeção (Regras)
-      // Só aplica a regra se o dia for no FUTURO em relação a HOJE.
-      // Se eu olhar o mês passado, isso nunca é true (gráfico fica 100% real).
+      // Soma Projetado
       if (isAfter(day, today)) {
         fullMonthRecurrences
           .filter((r) => isSameDay(r.date, day))
@@ -157,117 +131,102 @@ export class AnalyticsService {
       }
 
       runningBalance += dailyChange;
-
-      chartData.push({
-        x: day.toISOString().split('T')[0],
-        y: Number(runningBalance.toFixed(2)),
-      });
+      chartData.push({ x: day.toISOString().split('T')[0], y: Number(runningBalance.toFixed(2)) });
     }
 
-    // 6. SAÚDE FINANCEIRA
-    const health = this.calculateHealth(
-      projectedMonthBalance,
-      projectedMonthIncome,
-      projectedMonthExpense,
-      Number(userSettings?.savingsGoal || 0),
+    // 6. CATEGORIAS (GRÁFICO DE ROSCA) - CORRIGIDO
+    // Antes estava somando o GAP aqui. Agora removemos.
+    const categoryBreakdown = this.calculateCategoryBreakdown(
+      allTransactions,    // Transações reais DESTE mês
+      pendingOccurrences  // Projeções futuras apenas DESTE mês
     );
+
+    // 7. RETORNO
+    const health = this.calculateHealth(finalBalance, projectedMonthIncome, projectedMonthExpense, Number(userSettings?.savingsGoal || 0));
 
     return {
       summary: {
         realized: {
           income: monthRealizedIncome,
           expense: monthRealizedExpense,
-          balance: realizedBalance, // <--- Agora inclui o histórico
+          balance: startingBalance + monthRealizedIncome + monthRealizedExpense,
         },
         projected: {
           income: projectedMonthIncome,
           expense: projectedMonthExpense,
-          balance: projectedMonthBalance, // <--- Agora inclui o histórico
+          balance: finalBalance,
         },
         endOfMonth: {
-          balance: projectedMonthBalance, // <--- O Card "Saldo Previsto" vai ler isso aqui
+          finalBalance,
+          monthResult,
         },
       },
       chartData,
+      categories: categoryBreakdown,
       health,
     };
   }
 
-  // --- MÉTODOS AUXILIARES ---
+  // --- MÉTODOS AUXILIARES (Sem alterações) ---
 
-  /**
-   * Expande regras de recorrência (ex: "Semanal") em datas específicas dentro de um intervalo.
-   */
+  private calculateCategoryBreakdown(realTransactions: any[], projected: any[]) {
+    const map = new Map<string, { name: string; color: string; amount: number }>();
+
+    const processItem = (cat, amount) => {
+      if (amount >= 0) return; // Só despesas
+      const catId = cat?.id || 'uncategorized';
+      const catName = cat?.name || 'Sem Categoria';
+      const catColor = cat?.color || '#94a3b8';
+      const absAmount = Math.abs(amount);
+
+      if (!map.has(catId)) {
+        map.set(catId, { name: catName, color: catColor, amount: 0 });
+      }
+      map.get(catId)!.amount += absAmount;
+    };
+
+    realTransactions.forEach(t => processItem(t.category, Number(t.amount)));
+    projected.forEach(p => processItem(p.category, p.amount));
+
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+  }
+
   private projectRecurrences(rules: any[], start: Date, end: Date) {
-    // Se o inicio for depois do fim (ex: vendo mês passado), retorna vazio
     if (isAfter(start, end)) return [];
-
-    const occurrences: { date: Date; amount: number; description: string }[] = [];
+    
+    const occurrences: { date: Date; amount: number; description: string; category: any }[] = [];
 
     rules.forEach((rule) => {
       const amount = Number(rule.originalAmount);
       let cursor = startOfDay(new Date(rule.startDate));
 
-      // Loop de tempo: avança o cursor conforme a frequência até passar do fim do mês
       while (isBefore(cursor, end) || isSameDay(cursor, end)) {
-        
-        // Se o cursor estiver dentro da janela desejada [start, end], adiciona à lista
-        if (
+        const inWindow = 
           (isAfter(cursor, start) || isSameDay(cursor, start)) &&
-          (isBefore(cursor, end) || isSameDay(cursor, end))
-        ) {
-          occurrences.push({
-            date: new Date(cursor),
-            amount,
-            description: rule.description,
-          });
+          (isBefore(cursor, end) || isSameDay(cursor, end));
+
+        if (inWindow) {
+          occurrences.push({ date: new Date(cursor), amount, description: rule.description, category: rule.category });
         }
 
-        // Avança para a próxima data
         switch (rule.frequency) {
-          case 'DAILY':
-            cursor = addDays(cursor, rule.interval);
-            break;
-          case 'WEEKLY':
-            cursor = addWeeks(cursor, rule.interval);
-            break;
-          case 'MONTHLY':
-            cursor = addMonths(cursor, rule.interval);
-            break;
-          case 'YEARLY':
-            cursor = addYears(cursor, rule.interval);
-            break;
-          default:
-            cursor = addMonths(cursor, 1);
+          case 'DAILY': cursor = addDays(cursor, rule.interval); break;
+          case 'WEEKLY': cursor = addWeeks(cursor, rule.interval); break;
+          case 'MONTHLY': cursor = addMonths(cursor, rule.interval); break;
+          case 'YEARLY': cursor = addYears(cursor, rule.interval); break;
+          default: cursor = addMonths(cursor, 1);
         }
       }
     });
-
     return occurrences;
   }
 
-  /**
-   * Lógica simples para determinar se a saúde financeira está boa.
-   */
-  private calculateHealth(
-    balance: number,
-    income: number,
-    expense: number,
-    goal: number,
-  ): 'HEALTHY' | 'WARNING' | 'CRITICAL' {
-    // Se fechar no vermelho -> Crítico
+  private calculateHealth(balance: number, income: number, expense: number, goal: number): 'HEALTHY' | 'WARNING' | 'CRITICAL' {
     if (balance < 0) return 'CRITICAL';
-
     const savings = income - Math.abs(expense);
-    // Evita divisão por zero
     const savingsRate = income > 0 ? savings / income : 0;
-
-    // Se sobrar menos de 10% -> Atenção
     if (savingsRate < 0.1) return 'WARNING';
-    
-    // Se não atingir a meta do usuário -> Atenção
     if (goal > 0 && savings < goal) return 'WARNING';
-
     return 'HEALTHY';
   }
 }

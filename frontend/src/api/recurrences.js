@@ -1,4 +1,3 @@
-// services/recurrencesApi.js
 import { api } from './api';
 
 /**
@@ -29,4 +28,12 @@ export async function createRecurrence(recurrenceData) {
  */
 export async function getRecurrences() {
   return api('/recurrences', { method: 'GET' });
+}
+
+/**
+ * Deleta uma recorrência pelo ID.
+ * @param {string} id 
+ */
+export async function deleteRecurrence(id) {
+  return api(`/recurrences/${id}`, { method: 'DELETE' });
 }

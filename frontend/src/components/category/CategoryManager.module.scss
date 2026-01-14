@@ -83,3 +83,71 @@
     background: #2563eb;
   }
 }
+.message {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* CategoryManager.module.scss */
+
+/* ... estilos anteriores ... */
+
+.tagsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px 4px 10px; /* Mais padding na direita pra acomodar o botão */
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 6px;
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Estilo do botão X */
+  .deleteBtn {
+    background: transparent;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 0.5;
+    cursor: pointer;
+    margin-left: 2px;
+    padding: 0 2px 2px 2px;
+    opacity: 0.6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    
+    &:hover {
+      opacity: 1;
+      background-color: rgba(0,0,0,0.1); /* Um fundo sutil ao passar o mouse */
+    }
+  }
+}

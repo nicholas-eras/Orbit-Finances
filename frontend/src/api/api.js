@@ -1,7 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function api(path, options = {}) {
-  console.log(API_URL);
   const res = await fetch(`${API_URL}${path}`, {
     credentials: 'include',
     headers: {
@@ -12,10 +11,9 @@ export async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || 'Erro na API');
+  const data = await res.json();
+  if (!res.ok) {    
+    throw new Error(data.message || 'Erro na requisição');
   }
-
-  return res.json();
+  return data;
 }

@@ -78,7 +78,7 @@ const getRelevantPoints = (data, maxPoints = 4) => {
   );
 };
 
-export default function BalanceAreaChart({ data }) {
+export default function BalanceAreaChart({ data }) {  
   const chartOptions = useMemo(() => {
     const values = data.map(d => d.y);
     const maxAbsValue = values.length

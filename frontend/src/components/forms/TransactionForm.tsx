@@ -1,25 +1,19 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState, useEffect } from "react";
-
+import { useState } from "react";
 import styles from './TransactionForm.module.scss';
-import { getCategories } from "../../api/categories";
 import { createTransaction } from "../../api/transactions";
 
-interface TransactionFormProps {
-  onUpdated?: () => void;
-}
-
+// Funções auxiliares de data (iguais às do RecurrenceBox)
 const getTodayString = () => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const toLocalIsoString = (date: Date) => {
+const toLocalIsoString = (date) => {
   const tzo = -date.getTimezoneOffset();
   const dif = tzo >= 0 ? '+' : '-';
-  const pad = n => String(n).padStart(2,'0');
+  const pad = n => String(n).padStart(2, '0');
 
   return (
     date.getFullYear() +
@@ -28,34 +22,21 @@ const toLocalIsoString = (date: Date) => {
     'T' + pad(date.getHours()) +
     ':' + pad(date.getMinutes()) +
     ':' + pad(date.getSeconds()) +
-    dif + pad(Math.floor(Math.abs(tzo)/60)) +
-    ':' + pad(Math.abs(tzo)%60)
+    dif + pad(Math.floor(Math.abs(tzo) / 60)) +
+    ':' + pad(Math.abs(tzo) % 60)
   );
 };
 
-export default function TransactionForm({ onUpdated }: TransactionFormProps) {
-  const [categories, setCategories] = useState([]);
+// Agora recebe 'categories' do componente Pai (DashboardPage)
+export default function TransactionForm({ categories = [], onUpdated }) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(getTodayString());
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [type, setType] = useState<'EXPENSE'|'INCOME'>('EXPENSE');
+  const [type, setType] = useState('EXPENSE');
 
-  // ========================================
-  // Busca categorias ao montar componente
-  // ========================================
-  async function fetchCategories() {
-    try {
-      const data = await getCategories();
-      setCategories(data);
-    } catch (err) {
-      console.error('Erro ao buscar categorias:', err);
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  // Removido o useEffect e fetchCategories interno.
+  // Usamos os dados vindos via props.
 
   // ========================================
   // Submete nova transação
@@ -81,7 +62,9 @@ export default function TransactionForm({ onUpdated }: TransactionFormProps) {
       setDate(getTodayString());
       setSelectedCategory('');
 
+      // Notifica o pai para atualizar gráficos e listas
       if (onUpdated) onUpdated();
+      
     } catch (err) {
       console.error('Erro ao criar transação:', err);
     }
@@ -96,7 +79,7 @@ export default function TransactionForm({ onUpdated }: TransactionFormProps) {
           className={`${type === 'EXPENSE' ? styles.active : ''} ${styles.btnExpense}`}
           onClick={() => setType('EXPENSE')}
         >
-          Gasto
+          Saída
         </button>
         <button
           className={`${type === 'INCOME' ? styles.active : ''} ${styles.btnIncome}`}
@@ -107,7 +90,11 @@ export default function TransactionForm({ onUpdated }: TransactionFormProps) {
       </div>
 
       <div className={styles.inputs}>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+        <input 
+          type="date" 
+          value={date} 
+          onChange={e => setDate(e.target.value)} 
+        />
 
         <input
           type="number"
@@ -131,6 +118,7 @@ export default function TransactionForm({ onUpdated }: TransactionFormProps) {
         >
           <option value="" disabled>Selecione a Categoria</option>
           <option value="">Sem Categoria</option>
+          {/* Mapeia as categorias recebidas via props */}
           {categories.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}

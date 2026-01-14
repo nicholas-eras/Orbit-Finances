@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Delete, Param } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -15,5 +15,10 @@ export class CategoriesController {
   @Get()
   findAll(@Req() req) {
     return this.categoriesService.findAll(req.user.id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req) {
+    return this.categoriesService.remove(id, req.user.id);
   }
 }

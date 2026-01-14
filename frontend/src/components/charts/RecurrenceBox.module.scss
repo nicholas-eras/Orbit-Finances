@@ -6,7 +6,7 @@
   padding: 1.5rem;
   border-radius: 12px;
   border: 1px solid #334155;
-  margin-top: 20px;
+  margin-top: 1.5rem;
 }
 
 /* Mude de .rec-item para .recItem */
@@ -25,7 +25,18 @@
   }
   
   /* Mude de .rec-amount para .recAmount */
-  .recAmount { color: #cbd5e1; font-weight: 600; }
+  .recAmount {
+    font-weight: 600;
+    color: #cbd5e1; /* cor padrão */
+    
+    &.isExpense {
+      color: #ef4444; /* vermelho para despesa */
+    }
+
+    &.isIncome {
+      color: #10b981; /* verde para receita */
+    }
+  }
 }
 
 /* Mude de .add-form para .addForm */
@@ -68,26 +79,148 @@
 .empty {
   color: #64748b;
   text-align: center;
-  padding: 20px;
   font-size: 0.9rem;
 }
 
-/* Mude de .frequency-control para .frequencyControl */
 .frequencyControl {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #334155;
   background: #1e293b;
-  
-  span { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; }
-  
-  /* Mude de .interval-input para .intervalInput */
-  .intervalInput {
-    width: 50px !important;
-    text-align: center;
+  padding: 0.25rem 0.5rem;
+
+  span {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    white-space: nowrap;
   }
-  
+
+  .intervalInput {
+    flex: 0 0 auto;   /* não cresce, ocupa o mínimo necessário */
+    min-width: 3ch;   /* largura mínima para digitar o número */
+    width: 4ch;       /* largura padrão baseada em caracteres */
+    height: calc(2em - 4px);      /* altura proporcional à fonte */
+    text-align: center;
+    border: 1px solid #475569;
+    border-radius: 0.25rem;
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+
   select {
+    flex: 1;          /* ocupa todo espaço restante */
+    height: 3em;      /* mesma altura do input */
+    border-radius: 0.25rem;
+    border: 1px solid #475569;
+    background: #1e293b;
+    color: #f1f5f9;
+    padding: 0 0.5em;
+    min-width: 6ch;   /* evita ficar muito estreito em telas pequenas */
+  }
+}
+.typeToggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1rem;
+
+  button {
     flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    font-weight: bold;
+    cursor: pointer;
+    color: #94a3b8;
+    background: transparent;
+  }
+
+  .active.btnExpense {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+  }
+
+  .active.btnIncome {
+    background: #10b981;
+    color: white;
+    border-color: #10b981;
+  }
+}
+/* Atualize o .recItem e adicione as novas classes abaixo */
+
+.recItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #334155;
+
+  .recInfo {
+    display: flex;
+    flex-direction: column;
+    small { color: #94a3b8; font-size: 0.75rem; }
+  }
+
+  /* Container para alinhar Valor + Botão */
+  .rightSide {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .recAmount {
+    font-weight: 600;
+    color: #cbd5e1;
+    
+    &.isExpense { color: #ef4444; }
+    &.isIncome { color: #10b981; }
+  }
+
+  /* Botão de lixeira */
+  .deleteBtn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 1;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+}
+
+/* Dentro de .recInfo */
+.recInfo {
+  display: flex;
+  flex-direction: column;
+  
+  strong {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .metaInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espaço entre frequência e categoria */
+    
+    small { 
+      color: #94a3b8; 
+      font-size: 0.75rem; 
+    }
+
+    .catBadge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      /* Opcional: background bem suave da cor da categoria */
+      filter: brightness(1.2); 
+    }
   }
 }

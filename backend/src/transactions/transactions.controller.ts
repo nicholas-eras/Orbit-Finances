@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Query, Delete, Param } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -39,8 +39,13 @@ export class TransactionsController {
   getBarChart(
     @Req() req,
     @Query() dto: GetDashboardDto
-) {
+) {  ;
   return this.transactionsService.getBarChartData(req.user.id, dto);
 }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req) {
+    return this.transactionsService.remove(id, req.user.id);
+  }
 
 }

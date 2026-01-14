@@ -65,3 +65,7 @@ export async function getBarChartData(dto) {
   const params = new URLSearchParams(dto).toString();
   return api(`/transactions/bar-chart?${params}`, { method: 'GET' });
 }
+
+export async function deleteTransaction(id) {
+  return api(`/transactions/${id}`, { method: 'DELETE' });
+}
