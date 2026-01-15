@@ -27,6 +27,8 @@ services:
       NODE_ENV: production
       PORT: ${BACKEND_PORT}
       FRONTEND_URL: ${FRONTEND_URL}
+    env_file:
+    - .env
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     networks:
