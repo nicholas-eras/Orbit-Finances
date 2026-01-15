@@ -37,3 +37,10 @@ export async function getRecurrences() {
 export async function deleteRecurrence(id) {
   return api(`/recurrences/${id}`, { method: 'DELETE' });
 }
+
+export async function updateRecurrence(id, recurrenceData) {
+  return api(`/recurrences/${id}`, {
+    method: 'PATCH',
+    body: recurrenceData,
+  });
+}

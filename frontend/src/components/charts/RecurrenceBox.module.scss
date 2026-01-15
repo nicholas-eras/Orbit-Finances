@@ -304,3 +304,60 @@
     }
   }
 }
+
+.itemEditing {
+  background-color: rgba(59, 130, 246, 0.1); // Azul bem suave
+  border-left: 3px solid #3b82f6;
+  padding-left: 10px; // Compensa a borda
+}
+
+.editBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+  color: #fbbf24; // Amarelo/Dourado para editar
+
+  &:hover {
+    opacity: 1;
+    background-color: rgba(251, 191, 36, 0.1);
+  }
+}
+
+/* Formulário em modo de edição */
+.formEditing {
+  border: 1px dashed #3b82f6; // Borda tracejada azul no formulário
+  background: #1e293b;
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  h4 { margin: 0; }
+  
+  .cancelLink {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.85rem;
+    &:hover { color: white; }
+  }
+}
+
+/* Botão de Salvar Update (pode ser diferente do Adicionar se quiser) */
+.saveUpdateBtn {
+  background-color: #10b981 !important; // Verde para salvar alteração
+  border-color: #10b981 !important;
+  
+  &:hover {
+    background-color: #059669 !important;
+  }
+}

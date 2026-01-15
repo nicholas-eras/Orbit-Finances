@@ -52,4 +52,22 @@ export class CategoriesService {
 
     return { message: 'Categoria removida com sucesso' };
   }
+
+  async update(id: string, userId: string, data: { name?: string; color?: string; icon?: string }) {    
+    const result = await this.prisma.category.updateMany({
+      where: {
+        id: id,
+        userId: userId,
+      },
+      data: {
+        ...data,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Categoria não encontrada.');
+    }
+
+    return { message: 'Categoria atualizada com sucesso.' };
+  }
 }

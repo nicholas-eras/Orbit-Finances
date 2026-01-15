@@ -90,3 +90,10 @@ export async function createBatchTransactions(batchData) {
     body: batchData,
   });
 }
+
+export async function updateTransaction(id, transactionData) {
+  return api(`/transactions/${id}`, {
+    method: 'PATCH',
+    body: transactionData,
+  });
+}

@@ -151,4 +151,42 @@ export class RecurrencesService {
       default: return addMonths(current, 1);
     }
   }
+
+  async update(id: string, userId: string, dto: Partial<CreateRecurrenceDto>) {
+    
+    // Prepara os dados para atualização
+    const dataToUpdate: any = {
+      description: dto.description,
+      frequency: dto.frequency,
+      interval: dto.interval,
+      categoryId: dto.categoryId,
+    };
+
+    // Se mudou o valor ou o tipo, recalcula o originalAmount
+    if (dto.amount !== undefined && dto.type) {
+      dataToUpdate.originalAmount = dto.type === 'EXPENSE' 
+        ? -Math.abs(dto.amount) 
+        : Math.abs(dto.amount);
+    }
+
+    // Se mudou a data de início, atualizamos (cuidado: isso não muda o passado, só a referência)
+    if (dto.startDate) {
+      dataToUpdate.startDate = new Date(dto.startDate);
+      dataToUpdate.nextRun = new Date(dto.startDate);
+    }
+
+    const result = await this.prisma.recurrenceRule.updateMany({
+      where: {
+        id: id,
+        userId: userId, // Segurança: só atualiza se for do usuário
+      },
+      data: dataToUpdate,
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Recorrência não encontrada.');
+    }
+
+    return { message: 'Recorrência atualizada com sucesso' };
+  }
 }

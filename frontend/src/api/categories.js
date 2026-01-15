@@ -21,3 +21,10 @@ export async function getCategories() {
 export async function deleteCategory(id) {
   return api(`/categories/${id}`, { method: 'DELETE' });
 }
+
+export async function updateCategory(id, { name, color, icon }) {
+  return api(`/categories/${id}`, {
+    method: 'PATCH',
+    body: { name, color, icon },
+  });
+}

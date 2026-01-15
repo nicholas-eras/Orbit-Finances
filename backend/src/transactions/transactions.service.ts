@@ -14,6 +14,46 @@ import { CreateBatchDto } from './dto/create-batch.dto';
 export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
+  async update(id: string, userId: string, data: Partial<CreateTransactionDto>) {
+    const dataToUpdate: any = {
+      description: data.description,
+      amount: data.amount,
+      type: data.type,
+      categoryId: data.categoryId,
+      isPaid: data.isPaid
+    };
+
+    // Se vier data nova, converte
+    if (data.date) {
+      dataToUpdate.date = new Date(data.date);
+    }
+
+    // Lógica para garantir sinal correto (Entrada vs Saída)
+    if (data.amount !== undefined) {
+       let finalAmount = Math.abs(data.amount);
+       // Se o tipo for EXPENSE ou se não veio tipo mas o valor original era negativo...
+       // Aqui simplificamos: confiamos no 'type' enviado pelo front ou mantemos a lógica de expense = negativo
+       if (data.type === 'EXPENSE') {
+         finalAmount = -finalAmount;
+       }
+       dataToUpdate.amount = finalAmount;
+    }
+
+    const result = await this.prisma.transaction.updateMany({
+      where: {
+        id: id,
+        userId: userId, // Segurança: só edita se for do usuário
+      },
+      data: dataToUpdate,
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Transação não encontrada.');
+    }
+
+    return { message: 'Transação atualizada com sucesso' };
+  }
+
   // ===========================================================================
   // 1. DADOS PARA O GRÁFICO DE ÁREA (Time Series: Evolução do Saldo)
   // ===========================================================================

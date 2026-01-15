@@ -186,3 +186,149 @@
     white-space: normal;
   }
 }
+
+.actionBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: all 0.2s;
+  color: #94a3b8; /* Cor padrão do lápis */
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  &.btnDelete:hover {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* --- MODO EDIÇÃO (.editingItem) --- */
+.editingItem {
+  background-color: #283648; // Fundo ligeiramente mais claro que o padrão
+  border-left: 3px solid #3b82f6;
+  padding-left: 10px;
+  padding-right: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.editInputsGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  align-items: center;
+}
+
+/* Inputs Pequenos (Mini) */
+.miniInputDate, .miniInputText, .miniSelect, .miniInputAmount {
+  background: #0f172a;
+  border: 1px solid #475569;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  height: 30px;
+
+  &:focus {
+    border-color: #3b82f6;
+    outline: none;
+  }
+}
+
+.miniInputDate { width: 105px; }
+.miniInputText { flex: 1; min-width: 120px; } /* Ocupa o espaço livre */
+.miniSelect { width: 110px; }
+
+/* Wrapper para Tipo (+/-) e Valor */
+.amountInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  
+  select {
+    height: 30px;
+    border-radius: 4px 0 0 4px;
+    border: 1px solid #475569;
+    border-right: none;
+    background: #0f172a;
+    font-weight: bold;
+    padding: 0 4px;
+    
+    &.typeExp { color: #ef4444; }
+    &.typeInc { color: #10b981; }
+  }
+
+  input {
+    width: 80px;
+    border-radius: 0 4px 4px 0;
+  }
+}
+
+/* Botões Salvar/Cancelar */
+.editActions {
+  display: flex;
+  gap: 5px;
+  
+  button {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: transform 0.1s;
+
+    &:hover { transform: scale(1.1); }
+  }
+
+  .saveBtn {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .cancelBtn {
+    background-color: #ef4444;
+    color: white;
+  }
+}
+
+/* --- MOBILE --- */
+@media (max-width: 640px) {
+  .editingItem {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editInputsGroup {
+    flex-direction: column;
+    align-items: stretch;
+    
+    /* No mobile, inputs ocupam largura total */
+    input, select, .amountInputWrapper {
+      width: 100%;
+    }
+    
+    .miniInputDate { width: 100%; }
+    .miniSelect { width: 100%; }
+  }
+  
+  .editActions {
+    justify-content: flex-end;
+    margin-top: 5px;
+  }
+}

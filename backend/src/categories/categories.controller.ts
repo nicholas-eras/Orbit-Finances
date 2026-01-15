@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Delete, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Delete, Param, Patch } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -20,5 +20,14 @@ export class CategoriesController {
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req) {
     return this.categoriesService.remove(id, req.user.id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string, 
+    @Req() req, 
+    @Body() updateCategoryDto: { name?: string; color?: string; icon?: string }
+  ) {   
+    return this.categoriesService.update(id, req.user.id, updateCategoryDto);
   }
 }
