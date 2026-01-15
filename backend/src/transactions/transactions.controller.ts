@@ -3,6 +3,7 @@ import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetDashboardDto } from './dto/get-dashboard.dto';
+import { CreateBatchDto } from './dto/create-batch.dto';
 
 @Controller('transactions')
 @UseGuards(AuthGuard('jwt'))
@@ -48,4 +49,9 @@ export class TransactionsController {
     return this.transactionsService.remove(id, req.user.id);
   }
 
+  @Post('batch')
+  createBatch(@Body() dto: CreateBatchDto, @Req() req) {
+    // Ajuste conforme sua autenticação (ex: req.user.id ou req.user.sub)
+    return this.transactionsService.createBatch(req.user.id, dto);
+  }
 }

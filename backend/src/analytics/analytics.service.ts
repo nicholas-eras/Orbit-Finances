@@ -144,6 +144,13 @@ export class AnalyticsService {
     // 7. RETORNO
     const health = this.calculateHealth(finalBalance, projectedMonthIncome, projectedMonthExpense, Number(userSettings?.savingsGoal || 0));
 
+    // 8 salario final
+    const user = await this.prisma.user.findUnique({
+      where:{
+        id: userId
+      }
+    });
+
     return {
       summary: {
         realized: {
@@ -164,6 +171,10 @@ export class AnalyticsService {
       chartData,
       categories: categoryBreakdown,
       health,
+      bankBalance: {
+        balance: user.lastBankBalance,
+        date: user.lastBankBalanceDate
+      }
     };
   }
 

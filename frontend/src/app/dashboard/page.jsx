@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
+import Link from 'next/link'; // <--- 1. Importe o Link
 import styles from './Dashboard.module.scss'; 
 
 // Componentes
@@ -24,9 +25,9 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState([]);
   const [categoriesList, setCategoriesList] = useState([]); 
 
-  // Dados para os Gráficos (Vindos do Backend)
-  const [chartData, setChartData] = useState([]); // Linha (Fluxo)
-  const [pieChartData, setPieChartData] = useState([]); // Rosca (Categorias)
+  // Dados para os Gráficos
+  const [chartData, setChartData] = useState([]); 
+  const [pieChartData, setPieChartData] = useState([]); 
 
   // Resumo Financeiro
   const [summary, setSummary] = useState({
@@ -34,10 +35,12 @@ export default function DashboardPage() {
     endOfMonth: { finalBalance: 0, monthResult: 0 }
   });
 
+  const [bankBalance, setBankBalance] = useState(null);
+
   const [health, setHealth] = useState('HEALTHY');
   const [loading, setLoading] = useState(true);
 
-  // 1. Busca Categorias (para os dropdowns)
+  // Busca Categorias
   async function fetchCategoriesData() {
     try {
       const data = await getCategories();
@@ -47,25 +50,23 @@ export default function DashboardPage() {
     }
   }
 
-  // 2. Busca Dados do Dashboard
+  // Busca Dados do Dashboard
   async function fetchDashboard(date) {
     try {
       setLoading(true);
       const month = date.getMonth() + 1;
       const year = date.getFullYear();
 
-      // Chama Analytics (Resumo + Gráficos) e Lista de Transações em paralelo
       const [analyticsData, txList] = await Promise.all([
         getDashboardAnalytics(month, year),
         getTransactions(month, year),
       ]);
 
-      // Atualiza estados com o retorno do Analytics Service
       setSummary(analyticsData.summary);     
       setChartData(analyticsData.chartData); 
-      setPieChartData(analyticsData.categories); // <--- Aqui vem a lista pronta para a Rosca
+      setPieChartData(analyticsData.categories);
       setHealth(analyticsData.health);       
-      
+      setBankBalance(analyticsData.bankBalance);
       setTransactions(txList);
       
     } catch (err) {
@@ -75,40 +76,37 @@ export default function DashboardPage() {
     }
   }
 
-  // Função de recarregamento para passar aos filhos
   const handleTransactionUpdate = () => {
     fetchDashboard(currentDate);
   };
 
-  // Efeito inicial
   useEffect(() => {
     fetchDashboard(currentDate);
     fetchCategoriesData();
   }, [currentDate]);
 
-  // Prepara dados para o componente DoughnutChart
   const doughnutData = useMemo(() => {
     if (!pieChartData || pieChartData.length === 0) {
       return { labels: [], data: [], colors: [] };
     }
     return {
-      labels: pieChartData.map(c => c.name),
-      data: pieChartData.map(c => c.amount),
-      colors: pieChartData.map(c => c.color)
+      labels: pieChartData.map((c) => c.name),
+      data: pieChartData.map((c) => c.amount),
+      colors: pieChartData.map((c) => c.color)
     };
   }, [pieChartData]);
 
   const formatMoney = (val) =>
     Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const percentage = Math.abs(
-    (100 * summary.projected.expense) / summary.projected.income
-  );
+  const percentage = summary.projected.income > 0 
+    ? Math.abs((100 * summary.projected.expense) / summary.projected.income)
+    : 0;
 
   const getColorByPercentage = (value) => {
-    if (value <= 50) return '#10b981';   // verde até 50%
-    if (value <= 80) return '#facc15';   // amarelo de 51% a 80%
-    return '#ef4444';                    // vermelho acima de 80%
+    if (value <= 50) return '#10b981'; 
+    if (value <= 80) return '#facc15'; 
+    return '#ef4444';                    
   };
 
   return (
@@ -120,7 +118,15 @@ export default function DashboardPage() {
             {health === 'HEALTHY' ? 'Saudável' : health === 'WARNING' ? 'Atenção' : 'Crítico'}
           </div>
         </div>
-        <MonthSelector value={currentDate} onChange={setCurrentDate} />
+
+        {/* 2. AREA DE CONTROLES (BOTÃO + DATA) */}
+        <div className={styles.headerControls}>
+          <Link href="/dashboard/import" className={styles.btnImport}>
+             📄 Importar Extrato
+          </Link>
+          <MonthSelector value={currentDate} onChange={setCurrentDate} />
+        </div>
+
         {loading && (
           <div className={styles.loadingOverlay}>
             <div className={styles.spinner}></div>
@@ -143,18 +149,32 @@ export default function DashboardPage() {
               color: getColorByPercentage(percentage),
             }}
           >
-            {percentage.toFixed(1)}%
+            {percentage.toFixed(1)}% da renda
           </small>
         </div>
+        {/* CARD DE SALDO REFORMULADO */}
         <div className={`${styles.card} ${styles.balance}`}>
           <span>Saldo Final Projetado</span>
+          
+          {/* Valor do Sistema */}
           <h3 className={summary.endOfMonth.finalBalance < 0 ? styles.textRed : ''}>
             {formatMoney(summary.endOfMonth.finalBalance)}
           </h3>
-          <small style={{ color: summary.endOfMonth.monthResult >= 0 ? '#10b981' : '#ef4444', fontSize: '0.8rem' }}>
-            {summary.endOfMonth.monthResult >= 0 ? '▲ ' : '▼ '}
-            {formatMoney(summary.endOfMonth.monthResult)} neste mês
-          </small>
+
+          {/* Comparação com Banco */}
+          {bankBalance && (
+            <div className={styles.bankReference}>
+                <div className={styles.divider}></div>
+                <div className={styles.bankRow}>
+                    <span>🏦 Banco ({new Date(bankBalance.date).toLocaleDateString()}):</span>
+                    <strong>{formatMoney(Number(bankBalance.balance))}</strong>
+                </div>
+                {/* Diferença Visual */}
+                <small className={styles.diff}>
+                    Diferença: {formatMoney(Number(bankBalance.balance) - summary.endOfMonth.finalBalance)}
+                </small>
+            </div>
+          )}
         </div>
       </div>
 

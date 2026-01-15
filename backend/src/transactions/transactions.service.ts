@@ -8,6 +8,7 @@ import {
   startOfMonth,
   endOfMonth
 } from 'date-fns';
+import { CreateBatchDto } from './dto/create-batch.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -319,5 +320,87 @@ export class TransactionsService {
     }
 
     return { message: 'Transação removida com sucesso' };
+  }
+
+  async createBatch(userId: string, dto: CreateBatchDto) {
+    // 1. Extrair as datas únicas do payload para limitar a busca no banco
+    const dates = dto.transactions.map(t => t.date); // ['2026-01-13', '2026-01-12'...]
+    
+    // Pegamos a menor e a maior data para fazer um range search (mais performático)
+    const sortedDates = dates.sort();
+    const minDateStr = sortedDates[0];
+    const maxDateStr = sortedDates[sortedDates.length - 1];
+    console.log("tes");
+    // Precisamos converter para Date object para consultar o Prisma
+    // Usamos startOfDay no min e endOfDay no max para garantir pegar tudo
+    const searchStart = startOfDay(parseISO(minDateStr));
+    const searchEnd = endOfDay(parseISO(maxDateStr));
+
+    return this.prisma.$transaction(async (tx) => {
+      // 2. Buscar transações JÁ EXISTENTES nesse intervalo de tempo
+      const existingTransactions = await tx.transaction.findMany({
+        where: {
+          userId,
+          date: { gte: searchStart, lte: searchEnd }
+        }
+      });
+
+      // 3. Criar um Set de assinaturas das transações existentes
+      // Formato da chave: "YYYY-MM-DD|AMOUNT|DESCRIPTION"
+      const existingSignatures = new Set(
+        existingTransactions.map(t => {
+          const dateStr = format(t.date, 'yyyy-MM-dd'); // date-fns
+          return `${dateStr}|${t.amount}|${t.description.trim()}`;
+        })
+      );
+
+      // 4. Filtrar o payload: Só mantém o que NÃO está no Set
+      const newTransactions = dto.transactions.filter(t => {
+        const signature = `${t.date}|${t.amount}|${t.description.trim()}`;
+        
+        // Se já existe, retorna false (filtra fora)
+        if (existingSignatures.has(signature)) {
+          return false; 
+        }
+        
+        // Se não existe, retorna true (mantém na lista de criação)
+        return true;
+      });
+
+      if (dto.bankBalance !== undefined && dto.bankBalance !== null) {      
+        await tx.user.update({
+          where: { id: userId },
+          data: {            
+            lastBankBalance: dto.bankBalance,             
+            lastBankBalanceDate: new Date() 
+          }
+        });
+      }
+
+      const duplicatedTransactions = dto.transactions.length - newTransactions.length;
+
+      if (newTransactions.length === 0) {
+        return { count: 0, message: "Todas as transações já foram importadas anteriormente." };
+      }
+
+      // 5. Salva apenas as novas
+      await tx.transaction.createMany({
+        data: newTransactions.map((t) => ({
+          userId,
+          description: t.description,
+          amount: t.amount,
+          // Aquele fix do Timezone que combinamos
+          date: new Date(t.date + 'T12:00:00'), 
+          type: t.type,
+          categoryId: t.categoryId,
+          isPaid: true
+        }))
+      });
+
+      return { 
+        count: newTransactions.length,
+        message: duplicatedTransactions > 0 ? `Transações já existentes: ${duplicatedTransactions} ` : ""
+      };
+    });
   }
 }

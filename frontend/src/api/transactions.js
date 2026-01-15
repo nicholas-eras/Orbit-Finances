@@ -69,3 +69,24 @@ export async function getBarChartData(dto) {
 export async function deleteTransaction(id) {
   return api(`/transactions/${id}`, { method: 'DELETE' });
 }
+
+/**
+ * Cria múltiplas transações de uma vez (Importação em Lote)
+ * @param {Object} batchData
+ * @param {Array<Object>} batchData.transactions - Array de objetos de transação
+ */
+export async function createBatchTransactions(batchData) {
+  // Validação básica para garantir que estamos enviando o formato correto esperado pelo DTO do NestJS
+  if (!batchData || !batchData.transactions || !Array.isArray(batchData.transactions)) {
+    throw new Error('Formato inválido: é necessário enviar um objeto com um array de "transactions".');
+  }
+
+  if (batchData.transactions.length === 0) {
+    throw new Error('O array de transações está vazio.');
+  }
+
+  return api('/transactions/batch', {
+    method: 'POST',
+    body: batchData,
+  });
+}

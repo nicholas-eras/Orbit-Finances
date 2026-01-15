@@ -17,7 +17,10 @@ model User {
     
   savingsGoal   Decimal   @default(0)
   currency      String    @default("BRL")
-    
+  
+  lastBankBalance      Decimal? @default(0) @db.Decimal(10, 2)
+  lastBankBalanceDate  DateTime? // Para saber quando foi a última importação
+
   categories    Category[]
   transactions  Transaction[]
   recurrences   RecurrenceRule[]

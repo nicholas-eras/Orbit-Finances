@@ -23,6 +23,37 @@
       flex-wrap: wrap; // Permite que a badge caia se faltar espaço
     }
 
+    // --- NOVO: Agrupamento do Botão + Calendário ---
+    .headerControls {
+      display: flex;
+      align-items: center;
+      gap: 1rem; // Espaço entre o botão e o seletor de mês
+      flex-wrap: wrap;
+    }
+
+    // --- NOVO: Estilo do Botão Importar ---
+    .btnImport {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #334155; // Slate-700 (sutil para não brigar com o resto)
+      color: #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid #475569;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #3b82f6; // Azul no hover para destacar ação
+        border-color: #3b82f6;
+        color: white;
+        transform: translateY(-1px);
+      }
+    }
+
     h1 {
       margin: 0;
       font-size: 1.8rem;
@@ -79,7 +110,7 @@
 
     .card {
       background: #1e293b;
-      padding: 1.5rem;
+      padding: 0.5rem 1.5rem 0.5rem 1.5rem;
       border-radius: 12px;
       border: 1px solid #334155;
       display: flex;
@@ -102,10 +133,46 @@
       &.expense h3 { color: #ef4444; }
       .textRed { color: #ef4444; }
     }
-  }
 
-  /* ================= GRÁFICOS ================= */
-  .chartsGrid {
+    .card.balance {
+    // ... estilos anteriores ...
+
+    .bankReference {
+      margin-top: 12px;
+      width: 100%;
+    }
+
+    .divider {
+      height: 1px;
+      background: #334155;
+      margin-bottom: 8px;
+      width: 100%;
+    }
+
+    .bankRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #94a3b8;
+
+      strong {
+        color: #e2e8f0; // Cor clara para o valor
+      }
+    }
+
+    .diff {
+      display: block;
+      text-align: right;
+      font-size: 0.75rem;
+      color: #64748b; // Cor discreta
+      margin-top: 2px;
+    }
+  }
+    }
+
+    /* ================= GRÁFICOS ================= */
+    .chartsGrid {
     display: grid;
     // Desktop: 3 colunas no total (2/3 para linha, 1/3 para rosca)
     grid-template-columns: repeat(3, 1fr);
