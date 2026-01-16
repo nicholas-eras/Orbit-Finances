@@ -1,26 +1,88 @@
-/* RecurrenceBox.module.scss */
-
 .recurrenceBox { 
   background: #1e293b;
   padding: 1.5rem;
   border-radius: 12px;
   border: 1px solid #334155;
-  // margin-top: 1.5rem;
 
-  /* Ajuste de padding para mobile */
+  h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #e2e8f0;
+    font-size: 1.1rem;
+  }
+
   @media (max-width: 480px) {
     padding: 1rem;
     margin-bottom: 4rem;
   }
 }
 
+/* --- DASHBOARD / RESUMO --- */
+.summaryBoard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+}
+
+.sumItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+
+  span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+
+  strong {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  
+  /* Mobile: label na esquerda, valor na direita */
+  @media (max-width: 600px) {
+    flex-direction: row;
+    justify-content: space-between;
+    strong { font-size: 1rem; }
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 30px;
+  background: #334155;
+  margin: 0 1rem;
+
+  @media (max-width: 600px) {
+    display: none; 
+  }
+}
+
+.textIncome { color: #10b981; }
+.textExpense { color: #ef4444; }
+
+/* --- LISTA --- */
 .recList {
-  /* Garante scroll se a lista ficar muito grande em telas pequenas */
   max-height: 400px;
   overflow-y: auto;
-  padding-right: 5px; /* Espaço para scrollbar */
+  padding-right: 5px;
   
-  /* Scrollbar customizada */
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: #1e293b; }
   &::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -34,18 +96,15 @@
   border-bottom: 1px solid #334155;
   gap: 10px;
 
-  /* Mobile: Quebra linha se necessário */
   @media (max-width: 480px) {
     flex-direction: column;
-    align-items: flex-start; /* Alinha tudo à esquerda */
-    border-bottom: 1px solid #334155;
-    gap:0;
+    align-items: flex-start;
+    gap: 0;
   }
 
   .recInfo {
     display: flex;
     flex-direction: column;
-    /* Garante que o texto não estoure o container */
     min-width: 0; 
     word-break: break-word;
 
@@ -58,7 +117,7 @@
     .metaInfo {
       display: flex;
       align-items: center;
-      flex-wrap: wrap; /* Permite quebrar linha nas tags */
+      flex-wrap: wrap;
       gap: 8px;
       
       small { 
@@ -70,19 +129,17 @@
         font-size: 0.75rem;
         font-weight: 600;
         filter: brightness(1.2);
-        white-space: nowrap; /* Não quebra o texto da categoria */
+        white-space: nowrap;
       }
     }
   }
 
-  /* Lado direito (Valor + Botão) */
   .rightSide {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-shrink: 0; /* Impede que o valor encolha */
+    flex-shrink: 0;
 
-    /* Mobile: Valor e botão ocupam largura total e se separam */
     @media (max-width: 480px) {
       gap: 4px;
       width: 100%;
@@ -114,7 +171,7 @@
 
     &:hover {
       opacity: 1;
-      background-color: rgba(239, 68, 68, 0.1); /* Vermelho bem claro */
+      background-color: rgba(239, 68, 68, 0.1);
       color: #ef4444;
     }
   }
@@ -126,12 +183,6 @@
   font-size: 0.9rem;
   padding: 1rem 0;
 }
-
-/* --- FORMULÁRIO --- */
-
-/* RecurrenceBox.module.scss */
-
-/* ... (O código anterior do .recurrenceBox e .recList continua igual) ... */
 
 /* --- FORMULÁRIO --- */
 .addForm {
@@ -149,7 +200,6 @@
     letter-spacing: 0.05em;
   }
 
-  /* Toggle de Receita/Despesa continua igual */
   .typeToggle {
     display: flex;
     gap: 10px;
@@ -182,38 +232,30 @@
 
   .inputs {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Desktop: 2 colunas */
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    align-items: center; /* Alinha verticalmente */
+    align-items: center;
     
-    /* Responsivo: 1 coluna em telas menores que 640px */
     @media (max-width: 640px) {
       grid-template-columns: 1fr;
     }
 
-    /* TRUQUE DE LAYOUT:
-       Faz o primeiro input (Descrição) ocupar a largura total.
-       Isso deixa os outros 4 inputs formarem pares perfeitos embaixo. 
-    */
     & > input:first-of-type {
       grid-column: 1 / -1;
     }
     
-    /* IMPORTANTE: Use o seletor ">" (filho direto).
-       Isso impede que esse estilo afete os inputs DENTRO do frequencyControl 
-    */
     & > input, 
     & > select, 
     & > button {
-      padding: 0 12px; /* Padding lateral */
-      height: 42px;    /* Altura fixa para garantir alinhamento com o frequencyControl */
+      padding: 0 12px;
+      height: 42px;
       border-radius: 6px;
       border: 1px solid #334155;
       background: #1e293b;
       color: white;
       font-size: 0.9rem;
       width: 100%;
-      box-sizing: border-box; /* Garante que padding não aumente o tamanho total */
+      box-sizing: border-box;
       
       &:focus {
         outline: none;
@@ -225,7 +267,6 @@
       }
     }
 
-    /* O botão ocupa largura total */
     & > button {
       grid-column: 1 / -1; 
       background: #8b5cf6;
@@ -245,17 +286,14 @@
 }
 
 .frequencyControl {
-  /* Layout Flex para os itens internos */
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
-  /* Estilo do container para parecer um input igual aos outros */
   border-radius: 6px;
   border: 1px solid #334155;
   background: #1e293b;
   padding: 0 0.5rem; 
-  height: 42px; /* Mesma altura fixa dos outros inputs */
+  height: 42px;
   width: 100%;
   box-sizing: border-box;
 
@@ -265,7 +303,6 @@
     white-space: nowrap;
   }
 
-  /* Reseta os estilos dos inputs internos para não herdarem do pai */
   input, select {
     border: none !important;
     background: transparent !important;
@@ -281,34 +318,32 @@
     }
   }
 
-  /* Input de número pequeno */
   .intervalInput {
     width: 35px;
     text-align: center;
     font-weight: bold;
     border-bottom: 1px solid #475569 !important;
     border-radius: 0 !important;
-    height: 60% !important; /* Linha visual apenas */
+    height: 60% !important;
     margin-top: 2px;
   }
 
-  /* Select de período (Dias/Meses) */
   select {
-    flex: 1; /* Ocupa o resto do espaço */
+    flex: 1;
     cursor: pointer;
-    text-align: right; /* Joga o texto um pouco pra direita pra ficar bonito */
+    text-align: right;
     
     option {
-      background: #1e293b; /* Garante fundo escuro no dropdown */
+      background: #1e293b;
       color: white;
     }
   }
 }
 
 .itemEditing {
-  background-color: rgba(59, 130, 246, 0.1); // Azul bem suave
+  background-color: rgba(59, 130, 246, 0.1);
   border-left: 3px solid #3b82f6;
-  padding-left: 10px; // Compensa a borda
+  padding-left: 10px;
 }
 
 .editBtn {
@@ -319,7 +354,7 @@
   padding: 6px;
   border-radius: 4px;
   opacity: 0.6;
-  color: #fbbf24; // Amarelo/Dourado para editar
+  color: #fbbf24;
 
   &:hover {
     opacity: 1;
@@ -327,9 +362,8 @@
   }
 }
 
-/* Formulário em modo de edição */
 .formEditing {
-  border: 1px dashed #3b82f6; // Borda tracejada azul no formulário
+  border: 1px dashed #3b82f6;
   background: #1e293b;
 }
 
@@ -352,9 +386,8 @@
   }
 }
 
-/* Botão de Salvar Update (pode ser diferente do Adicionar se quiser) */
 .saveUpdateBtn {
-  background-color: #10b981 !important; // Verde para salvar alteração
+  background-color: #10b981 !important;
   border-color: #10b981 !important;
   
   &:hover {

@@ -1,17 +1,18 @@
 // @ts-nocheck
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import styles from './RecurrenceBox.module.scss';
-// Adicionado updateRecurrence
 import { getRecurrences, createRecurrence, deleteRecurrence, updateRecurrence } from '../../api/recurrences';
 
-// ... funções auxiliares (getTodayString, toLocalIsoString, etc) mantidas ...
+// --- Funções Auxiliares ---
+
 const getTodayString = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-const toLocalIsoString = (date) => { /* ... sua função existente ... */ 
+
+const toLocalIsoString = (date) => {
   const tzo = -date.getTimezoneOffset();
   const dif = tzo >= 0 ? '+' : '-';
   const pad = n => String(n).padStart(2, '0');
@@ -21,13 +22,38 @@ const toLocalIsoString = (date) => { /* ... sua função existente ... */
     dif + pad(Math.floor(Math.abs(tzo) / 60)) + ':' + pad(Math.abs(tzo) % 60)
   );
 };
+
 const formatCurrency = val => Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const formatFrequency = (freq, interval) => { /* ... sua função existente ... */ 
+
+const formatFrequency = (freq, interval) => {
   const map = { DAILY: { singular: 'Dia', plural: 'Dias' }, WEEKLY: { singular: 'Semana', plural: 'Semanas' }, MONTHLY: { singular: 'Mês', plural: 'Meses' }, YEARLY: { singular: 'Ano', plural: 'Anos' }, };
   const unit = map[freq];
   if (!unit) return freq; 
   if (interval === 1) return `A cada 1 ${unit.singular}`;
   return `A cada ${interval} ${unit.plural}`;
+};
+
+// --- Lógica de Cálculo "Esperta" ---
+// Normaliza qualquer frequência para uma estimativa MENSAL
+const calculateMonthlyProjection = (amount, frequency, interval) => {
+  const value = Math.abs(Number(amount)); 
+  const intr = Number(interval) || 1;
+
+  switch (frequency) {
+    case 'DAILY':
+      // Ex: 10 reais por dia = 300 por mês
+      return (value * 30) / intr;
+    case 'WEEKLY':
+      // Ex: 100 por semana. O ano tem 52 semanas e 12 meses.
+      // (100 * 52) / 12 = 433,33 (Média ponderada, pois meses não têm exatamente 4 semanas)
+      return (value * 52) / 12 / intr;
+    case 'MONTHLY':
+      return value / intr;
+    case 'YEARLY':
+      return value / 12 / intr;
+    default:
+      return value;
+  }
 };
 
 export default function RecurrenceBox({ categories = [], onUpdate }) {
@@ -42,7 +68,7 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
   const [frequency, setFrequency] = useState('MONTHLY');
   const [type, setType] = useState('EXPENSE');
 
-  // NOVO: Estado para controlar Edição
+  // Estado para controlar Edição
   const [editingId, setEditingId] = useState(null);
 
   async function fetchRecurrences() {
@@ -59,19 +85,40 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
   }, []);
 
   // ========================================
-  // PREPARAR EDIÇÃO (Ao clicar no Lápis)
+  // CALCULAR TOTAIS (MEMOIZED)
+  // ========================================
+  const summary = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+
+    list.forEach(rec => {
+      // Projeta o impacto mensal
+      const monthlyVal = calculateMonthlyProjection(rec.originalAmount, rec.frequency, rec.interval);
+
+      // Se o valor original for negativo, conta como despesa
+      if (Number(rec.originalAmount) < 0) {
+        expense += monthlyVal;
+      } else {
+        income += monthlyVal;
+      }
+    });
+
+    return {
+      income,
+      expense,
+      balance: income - expense
+    };
+  }, [list]);
+
+  // ========================================
+  // AÇÕES (Editar, Cancelar, Salvar, Deletar)
   // ========================================
   function handleStartEdit(rec) {
     setEditingId(rec.id);
-    
-    // Preenche o formulário
     setDescription(rec.description);
-    // Converte valor absoluto (tira o negativo visualmente)
     setAmount(Math.abs(rec.originalAmount));
-    // Define se é despesa ou receita
     setType(Number(rec.originalAmount) < 0 ? 'EXPENSE' : 'INCOME');
     
-    // Datas: Prisma manda ISO completo, o input date quer YYYY-MM-DD
     const isoDate = new Date(rec.startDate).toISOString().split('T')[0];
     setStartDate(isoDate);
 
@@ -79,13 +126,9 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
     setInterval(rec.interval);
     setFrequency(rec.frequency);
     
-    // Rola a tela até o formulário (opcional, bom para mobile)
     document.querySelector(`.${styles.addForm}`).scrollIntoView({ behavior: 'smooth' });
   }
 
-  // ========================================
-  // CANCELAR EDIÇÃO
-  // ========================================
   function handleCancelEdit() {
     setEditingId(null);
     setDescription('');
@@ -97,9 +140,6 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
     setType('EXPENSE');
   }
 
-  // ========================================
-  // SALVAR (Criar ou Atualizar)
-  // ========================================
   async function handleSave() {
     if (!description || !amount || !startDate) return;
 
@@ -118,22 +158,16 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
 
     try {
       if (editingId) {
-        // --- MODO UPDATE ---
         await updateRecurrence(editingId, payload);
-        
-        // Atualiza a lista localmente (otimista ou refetch)
         await fetchRecurrences(); 
-        setEditingId(null); // Sai do modo edição
+        setEditingId(null); 
       } else {
-        // --- MODO CREATE ---
         const newRec = await createRecurrence(payload);
         setList(prev => [...prev, newRec]);
       }
 
       if (onUpdate) onUpdate();
-      
-      // Limpa formulário (se não for edição, ou após sucesso da edição)
-      handleCancelEdit(); // Reusa a função de resetar
+      handleCancelEdit(); // Limpa form
 
     } catch (err) {
       console.error('Erro ao salvar:', err);
@@ -155,6 +189,26 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
     <div className={styles.recurrenceBox}>
       <h3>Contas Fixas & Assinaturas</h3>
 
+      {/* --- DASHBOARD DE RESUMO --- */}
+      <div className={styles.summaryBoard}>
+        <div className={styles.sumItem}>
+          <span>Receita Mensal (Est.)</span>
+          <strong className={styles.textIncome}>{formatCurrency(summary.income)}</strong>
+        </div>
+        <div className={styles.divider}></div>
+        <div className={styles.sumItem}>
+          <span>Despesa Mensal (Est.)</span>
+          <strong className={styles.textExpense}>{formatCurrency(summary.expense)}</strong>
+        </div>
+        <div className={styles.divider}></div>
+        <div className={styles.sumItem}>
+          <span>Balanço Recorrente</span>
+          <strong className={summary.balance >= 0 ? styles.textIncome : styles.textExpense}>
+            {formatCurrency(summary.balance)}
+          </strong>
+        </div>
+      </div>
+
       <div className={styles.recList}>
         {list.map(rec => (
           <div key={rec.id} className={`${styles.recItem} ${editingId === rec.id ? styles.itemEditing : ''}`}>
@@ -175,20 +229,10 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
                 {formatCurrency(rec.originalAmount)}
               </div>
               
-              {/* Botão Editar (Lápis) */}
-              <button 
-                className={styles.editBtn} 
-                onClick={() => handleStartEdit(rec)}
-                title="Editar"
-              >
+              <button className={styles.editBtn} onClick={() => handleStartEdit(rec)} title="Editar">
                 ✎
               </button>
-
-              <button 
-                className={styles.deleteBtn} 
-                onClick={() => handleDelete(rec.id, rec.description)}
-                title="Excluir"
-              >
+              <button className={styles.deleteBtn} onClick={() => handleDelete(rec.id, rec.description)} title="Excluir">
                 🗑️
               </button>
             </div>

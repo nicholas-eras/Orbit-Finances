@@ -14,6 +14,66 @@
   }
 }
 
+/* --- NOVO: SUMMARY BOARD --- */
+.summaryBoard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f172a;
+  padding: 0.8rem 1rem; /* Um pouco mais compacto que a de recorrência */
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: stretch;
+  }
+}
+
+.sumItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+
+  span {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 2px;
+  }
+
+  strong {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  
+  @media (max-width: 600px) {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: #334155;
+  margin: 0 1rem;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
+}
+
+.textIncome { color: #10b981; }
+.textExpense { color: #ef4444; }
+
+/* ... (O resto do seu CSS permanece inalterado: .loading, .txItem, .editingItem, etc.) ... */
+
 .loading,
 .empty {
   color: #94a3b8;
@@ -101,23 +161,6 @@
       color: #ef4444;
     }
   }
-
-  .deleteBtn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 4px;
-    border-radius: 4px;
-    opacity: 0.4;
-    transition: opacity 0.2s, background-color 0.2s;
-    flex-shrink: 0;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-  }
 }
 
 /* =========================================
@@ -147,7 +190,18 @@
 /* =========================================
    BADGE
    ========================================= */
-
+.badgeProjected {
+  font-size: 0.7rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  border: 1px solid #475569;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
 .badgeScheduled {
   font-size: 0.7rem;
   background-color: #0f172a;
@@ -196,7 +250,7 @@
   border-radius: 4px;
   opacity: 0.5;
   transition: all 0.2s;
-  color: #94a3b8; /* Cor padrão do lápis */
+  color: #94a3b8;
 
   &:hover {
     opacity: 1;
@@ -213,7 +267,7 @@
 
 /* --- MODO EDIÇÃO (.editingItem) --- */
 .editingItem {
-  background-color: #283648; // Fundo ligeiramente mais claro que o padrão
+  background-color: #283648;
   border-left: 3px solid #3b82f6;
   padding-left: 10px;
   padding-right: 5px;
@@ -248,7 +302,7 @@
 }
 
 .miniInputDate { width: 105px; }
-.miniInputText { flex: 1; min-width: 120px; } /* Ocupa o espaço livre */
+.miniInputText { flex: 1; min-width: 120px; }
 .miniSelect { width: 110px; }
 
 /* Wrapper para Tipo (+/-) e Valor */
@@ -318,7 +372,6 @@
     flex-direction: column;
     align-items: stretch;
     
-    /* No mobile, inputs ocupam largura total */
     input, select, .amountInputWrapper {
       width: 100%;
     }
