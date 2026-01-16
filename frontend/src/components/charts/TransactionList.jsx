@@ -221,8 +221,10 @@ export default function TransactionList({ month, year, onUpdate, transactions, c
                 <div className={styles.txInfo}>
                   <div className={styles.txDesc}>
                     {tx.description}
-                    {isProjected && <span className={styles.badgeProjected}>Previsto</span>}
-                    {tx.recurrenceId && <span className={styles.badgeScheduled}>Recorrente</span>}
+                    <div className={styles.txDescLabel}>
+                      {isProjected && <span className={styles.badgeProjected}>Previsto</span>}
+                      {tx.recurrenceId && <span className={styles.badgeScheduled}>Recorrente</span>}  
+                    </div>                    
                   </div>
                   {tx.category && (
                     <div className={styles.txCat} style={{ color: tx.category.color }}>

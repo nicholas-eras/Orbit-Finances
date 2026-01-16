@@ -204,6 +204,12 @@
       word-break: break-word;
     }
 
+    .txDescLabel{
+      gap: 1rem;
+      display: flex;
+      flex-direction: row;
+    }
+
     .txCat {
       font-size: 0.75rem;
       margin-top: 2px;
@@ -387,31 +393,72 @@
   }
 }
 
-/* --- MOBILE --- */
-@media (max-width: 640px) {
-  .txItem, .editingItem {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
+/* --- MOBILE --- */@media (max-width: 640px) {
+  .txItem {
+    display: grid;
+    grid-template-columns: 64px 1fr auto 48px;
+    grid-template-rows: auto auto;
+    gap: 0.4rem 0.6rem;
+    align-items: start;
   }
 
-  .leftGroup { gap: 0.75rem; }
-  .rightGroup { justify-content: space-between; }
-  
-  .editInputsGroup {
-    flex-direction: column;
-    align-items: stretch;
-    
-    input, select, .amountInputWrapper { width: 100%; }
-    .miniInputDate, .miniSelect { width: 100%; }
+  /* RESET */
+  .leftGroup,
+  .rightGroup {
+    display: contents;
   }
-  
-  .editActions {
-    justify-content: flex-end;
-    margin-top: 5px;
-  }
-}
 
-@media (max-width: 480px) {
-  .txAmount { white-space: normal; }
+  /* ─── COLUNA 1 ─── */
+  .txDate {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.7rem;
+    justify-self: start;
+  }
+
+  .txAmount {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 0.85rem;
+    justify-self: start;
+  }
+
+  /* ─── COLUNA 2 ─── */
+  .txInfo {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .txDesc {
+    font-size: 0.9rem;
+    line-height: 1.2;
+  }
+
+  .txCat {
+    font-size: 0.75rem;
+  }
+
+  /* ─── COLUNA 3 ─── */
+  .txDescLabel {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  /* ─── COLUNA 4 ─── */
+  .rightGroup {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .actionBtn {
+    opacity: 1;
+  }
 }
