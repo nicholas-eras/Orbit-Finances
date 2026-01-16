@@ -1,13 +1,19 @@
+/* =========================================================
+   CONTAINER PRINCIPAL
+   ========================================================= */
 .txList {
-  background: #1e293b;
+  background: #1e293b; /* Slate-800 */
   border-radius: 12px;
   padding: 1.5rem;
   border: 1px solid #334155;
-  /* overflow removido daqui para controlar apenas a lista interna */
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-/* --- HEADER --- */
+/* =========================================================
+   HEADER (Título e Botão Nova)
+   ========================================================= */
 .listHeader {
   display: flex;
   justify-content: space-between;
@@ -18,6 +24,7 @@
     margin: 0;
     color: white;
     font-size: 1.1rem;
+    font-weight: 600;
   }
 }
 
@@ -41,7 +48,9 @@
   }
 }
 
-/* --- CONTAINER DO FORMULÁRIO --- */
+/* =========================================================
+   FORMULÁRIO (Animação de entrada)
+   ========================================================= */
 .embeddedFormContainer {
   margin-bottom: 1.5rem;
   animation: slideDown 0.3s ease-out;
@@ -52,15 +61,17 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- SUMMARY BOARD --- */
+/* =========================================================
+   RESUMO (Entradas, Saídas, Saldo)
+   ========================================================= */
 .summaryBoard {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #0f172a;
+  background: #0f172a; /* Slate-900 */
   padding: 0.8rem 1rem;
   border-radius: 8px;
-  margin-bottom: 1rem; /* Reduzi um pouco a margem inferior */
+  margin-bottom: 1rem;
   border: 1px solid #334155;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
@@ -90,6 +101,7 @@
     font-weight: 700;
   }
   
+  /* No mobile, exibe label e valor lado a lado */
   @media (max-width: 600px) {
     flex-direction: row;
     justify-content: space-between;
@@ -102,214 +114,203 @@
   background: #334155;
   margin: 0 1rem;
 
-  @media (max-width: 600px) {
-    display: none;
-  }
+  @media (max-width: 600px) { display: none; }
 }
 
 .textIncome { color: #10b981; }
 .textExpense { color: #ef4444; }
 
-/* --- NOVO: CONTAINER DE ROLAGEM DA LISTA --- */
+/* =========================================================
+   ÁREA DE ROLAGEM DA LISTA
+   ========================================================= */
 .transactionsScroll {
-  /* Controla a altura máxima antes da barra aparecer. 
-     Aumente ou diminua os pixels conforme desejar. */
   max-height: 600px; 
   overflow-y: auto;
-  padding-right: 5px; /* Espaço para o texto não colar na barra */
+  padding-right: 5px;
 
-  /* Scrollbar Customizada (Chrome, Edge, Safari) */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-  }
-
+  /* Scrollbar Customizada */
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 3px; }
   &::-webkit-scrollbar-thumb {
     background-color: #475569;
     border-radius: 3px;
-    
-    &:hover {
-      background-color: #64748b;
-    }
+    &:hover { background-color: #64748b; }
   }
 }
 
-/* --- ESTILOS DA LISTA (INTERNOS) --- */
-.loading,
-.empty {
+.loading, .empty {
   color: #94a3b8;
   text-align: center;
   margin-top: 2rem;
   font-size: 0.9rem;
 }
 
+/* =========================================================
+   ITEM DA TRANSAÇÃO (O GRID PRINCIPAL)
+   ========================================================= */
 .txItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  /* DESKTOP: 4 BLOCOS EM LINHA 
+     1. Data (Auto)
+     2. Info (Ocupa o resto - 1fr)
+     3. Valor (Auto)
+     4. Ações (Auto)
+  */
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center; /* Centraliza verticalmente */
+  gap: 1.5rem;
+  
   padding: 12px 0;
   border-bottom: 1px solid #334155;
   transition: background-color 0.2s ease;
 
-  &:last-child {
-    border-bottom: none;
-  }
-
-  .leftGroup,
-  .rightGroup {
-    min-width: 0;
-  }
-
-  .leftGroup {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .rightGroup {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .txDate {
-    color: #94a3b8;
-    font-size: 0.85rem;
-    font-family: monospace;
-    background: #0f172a;
-    padding: 4px 6px;
-    border-radius: 4px;
-    min-width: 48px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  .txInfo {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-
-    .txDesc {
-      color: #f1f5f9;
-      font-weight: 500;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      white-space: normal;
-      word-break: break-word;
-    }
-
-    .txDescLabel{
-      gap: 1rem;
-      display: flex;
-      flex-direction: row;
-    }
-
-    .txCat {
-      font-size: 0.75rem;
-      margin-top: 2px;
-      font-weight: 600;
-    }
-  }
-
-  .txAmount {
-    font-weight: 700;
-    font-size: 0.95rem;
-    white-space: nowrap;
-    flex-shrink: 0;
-
-    &.isIncome { color: #10b981; }
-    &.isExpense { color: #ef4444; }
+  &:last-child { border-bottom: none; }
+  
+  /* Efeito hover apenas no Desktop */
+  @media(min-width: 641px) {
+    &:hover { background-color: rgba(255, 255, 255, 0.02); }
   }
 }
 
-/* --- PROJETADOS --- */
-.projectedItem {
-  opacity: 0.75;
-  background-image: linear-gradient(90deg, #334155 50%, transparent 50%);
-  background-size: 8px 1px;
-  background-repeat: repeat-x;
-  background-position: bottom;
-  border-bottom: none;
-
-  .txDesc {
-    font-style: italic;
-    color: #cbd5e1;
-  }
-
-  .txDate {
-    background: #1e293b;
-    border: 1px dashed #475569;
-    color: #64748b;
-  }
-}
-
-/* --- BADGES --- */
-.badgeProjected {
-  font-size: 0.7rem;
-  background-color: rgba(255, 255, 255, 0.05);
+/* --- BLOCO 1: DATA --- */
+.colDate {
+  font-family: monospace;
   color: #94a3b8;
-  border: 1px solid #475569;
-  padding: 1px 6px;
+  background: #0f172a;
+  padding: 4px 8px;
   border-radius: 4px;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
-}
-.badgeScheduled {
-  font-size: 0.7rem;
-  background-color: #0f172a;
-  color: #38bdf8;
-  border: 1px solid #0ea5e9;
-  padding: 1px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
+  font-size: 0.85rem;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 60px;
 }
 
-/* --- BOTÕES DE AÇÃO --- */
+/* --- BLOCO 2: INFO (Descrição + Badges) --- */
+.colInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* Essencial para truncar texto */
+}
+
+.txDesc {
+  color: #f1f5f9;
+  font-weight: 500;
+  font-size: 0.95rem;
+  /* Truncar texto longo no desktop */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badgesWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.txCat {
+  font-size: 0.75rem;
+  font-weight: 600;
+  filter: brightness(1.1); /* Deixa a cor da categoria levemente mais viva */
+}
+
+/* --- BLOCO 3: VALOR --- */
+.colAmount {
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  text-align: right;
+  
+  &.isIncome { color: #10b981; }
+  &.isExpense { color: #ef4444; }
+}
+
+/* --- BLOCO 4: AÇÕES --- */
+.colActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 60px;
+}
+
 .actionBtn {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.1rem;
   padding: 4px;
   border-radius: 4px;
-  opacity: 0.5;
+  color: #64748b;
   transition: all 0.2s;
-  color: #94a3b8;
 
-  &:hover {
-    opacity: 1;
-    transform: scale(1.1);
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
+  &:hover { 
+    color: #f8fafc; 
+    background-color: rgba(255,255,255,0.1);
+    transform: scale(1.1); 
   }
-
-  &.btnDelete:hover {
-    color: #ef4444;
+  
+  &.btnDelete:hover { 
+    color: #ef4444; 
     background-color: rgba(239, 68, 68, 0.1);
   }
 }
 
-/* --- MODO EDIÇÃO --- */
+.loadingIcon { opacity: 0.5; font-size: 0.9rem; }
+
+/* --- ESTILOS VISUAIS EXTRAS (Proj/Badges) --- */
+.projectedItem {
+  opacity: 0.75;
+  /* Listras sutis para indicar previsão */
+  background-image: linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.02) 75%, transparent 75%, transparent);
+  background-size: 20px 20px;
+
+  .txDesc { font-style: italic; color: #cbd5e1; }
+  .colDate { border: 1px dashed #475569; background: transparent; }
+}
+
+.badgeProjected, .badgeScheduled {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.badgeProjected { 
+  background: rgba(255,255,255,0.05); 
+  color: #94a3b8; 
+  border: 1px solid #475569; 
+}
+.badgeScheduled { 
+  background: rgba(14,165,233,0.1); 
+  color: #38bdf8; 
+  border: 1px solid #0ea5e9; 
+}
+
+/* =========================================================
+   MODO EDIÇÃO (Quando clica no lápis)
+   ========================================================= */
 .editingItem {
   background-color: #283648;
   border-left: 3px solid #3b82f6;
   padding-left: 10px;
   padding-right: 5px;
-  display: flex;
+  
+  /* Quebra o Grid padrão para usar Flex no form de edição */
+  display: flex !important; 
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  
+  @media(max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .editInputsGroup {
@@ -320,145 +321,101 @@
   align-items: center;
 }
 
-.miniInputDate, .miniInputText, .miniSelect, .miniInputAmount {
-  background: #0f172a;
-  border: 1px solid #475569;
-  color: white;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.85rem;
-  height: 30px;
-
-  &:focus {
-    border-color: #3b82f6;
-    outline: none;
-  }
-}
-
-.miniInputDate { width: 105px; }
-.miniInputText { flex: 1; min-width: 120px; }
-.miniSelect { width: 110px; }
-
-.amountInputWrapper {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  
-  select {
-    height: 30px;
-    border-radius: 4px 0 0 4px;
-    border: 1px solid #475569;
-    border-right: none;
-    background: #0f172a;
-    font-weight: bold;
-    padding: 0 4px;
-    
-    &.typeExp { color: #ef4444; }
-    &.typeInc { color: #10b981; }
-  }
-
-  input {
-    width: 80px;
-    border-radius: 0 4px 4px 0;
-  }
-}
-
 .editActions {
   display: flex;
   gap: 5px;
   
   button {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 4px; border: none;
+    cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
     font-weight: bold;
     transition: transform 0.1s;
-
     &:hover { transform: scale(1.1); }
   }
-
-  .saveBtn {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .cancelBtn {
-    background-color: #ef4444;
-    color: white;
-  }
+  .saveBtn { background-color: #10b981; color: white; }
+  .cancelBtn { background-color: #ef4444; color: white; }
 }
 
-/* --- MOBILE --- */@media (max-width: 640px) {
+/* Inputs Compactos do Modo Edição */
+.miniInputDate, .miniInputText, .miniSelect, .miniInputAmount {
+  background: #0f172a; border: 1px solid #475569;
+  color: white; border-radius: 4px; padding: 4px 8px;
+  font-size: 0.85rem; height: 32px;
+  &:focus { border-color: #3b82f6; outline: none; }
+}
+.miniInputDate { width: 110px; }
+.miniInputText { flex: 1; min-width: 120px; }
+.miniSelect { width: 120px; }
+.amountInputWrapper {
+  display: flex; align-items: center;
+  select {
+    height: 32px; border-radius: 4px 0 0 4px; border: 1px solid #475569;
+    background: #0f172a; font-weight: bold; padding: 0 4px; border-right: none;
+    &.typeExp { color: #ef4444; } &.typeInc { color: #10b981; }
+  }
+  input { width: 90px; border-radius: 0 4px 4px 0; }
+}
+
+
+/* =========================================================
+   RESPONSIVIDADE (MOBILE / TABLET < 640px)
+   Aqui está a mágica dos 4 blocos reorganizados
+   ========================================================= */
+@media (max-width: 640px) {
   .txItem {
-    display: grid;
-    grid-template-columns: 64px 1fr auto 48px;
+    /* Define as Áreas do Grid */
+    grid-template-columns: auto 1fr;
     grid-template-rows: auto auto;
-    gap: 0.4rem 0.6rem;
+    grid-template-areas: 
+      "areaDate    areaInfo"
+      "areaActions areaAmount";
+      
+    /* Ajuste de espaçamento */
+    gap: 8px 12px;
     align-items: start;
   }
 
-  /* RESET */
-  .leftGroup,
-  .rightGroup {
-    display: contents;
-  }
-
-  /* ─── COLUNA 1 ─── */
-  .txDate {
-    grid-column: 1;
-    grid-row: 1;
-    font-size: 0.7rem;
-    justify-self: start;
-  }
-
-  .txAmount {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: 0.85rem;
-    justify-self: start;
-  }
-
-  /* ─── COLUNA 2 ─── */
-  .txInfo {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-
-  .txDesc {
-    font-size: 0.9rem;
-    line-height: 1.2;
-  }
-
-  .txCat {
+  /* --- Posicionando os 4 Blocos --- */
+  
+  /* 1. DATA: Topo Esquerda */
+  .colDate {
+    grid-area: areaDate;
     font-size: 0.75rem;
+    align-self: start;
+    min-width: auto;
   }
 
-  /* ─── COLUNA 3 ─── */
-  .txDescLabel {
-    grid-column: 3;
-    grid-row: 1 / span 2;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px;
-    align-items: flex-start;
+  /* 2. INFO: Topo Direita (ocupa o resto) */
+  .colInfo {
+    grid-area: areaInfo;
+  }
+  .txDesc {
+    /* No mobile, permite quebra de linha se o nome for gigante */
+    white-space: normal;
+    line-height: 1.3;
   }
 
-  /* ─── COLUNA 4 ─── */
-  .rightGroup {
-    grid-column: 4;
-    grid-row: 1 / span 2;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
+  /* 3. VALOR: Baixo Direita */
+  .colAmount {
+    grid-area: areaAmount;
+    justify-self: end; /* Alinha à direita */
+    align-self: center;
+    font-size: 1rem;
   }
 
+  /* 4. AÇÕES: Baixo Esquerda */
+  .colActions {
+    grid-area: areaActions;
+    justify-content: flex-start; /* Alinha à esquerda */
+    align-self: center;
+  }
+
+  /* Ajuste dos botões para serem mais tocáveis no mobile */
   .actionBtn {
     opacity: 1;
+    padding: 6px;
+    font-size: 1.2rem;
   }
 }

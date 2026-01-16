@@ -216,36 +216,42 @@ export default function TransactionList({ month, year, onUpdate, transactions, c
 
           return (
             <div key={tx.id} className={`${styles.txItem} ${isProjected ? styles.projectedItem : ''}`}>
-              <div className={styles.leftGroup}>
-                <div className={styles.txDate}>{formatDate(tx.date)}</div>
-                <div className={styles.txInfo}>
-                  <div className={styles.txDesc}>
-                    {tx.description}
-                    <div className={styles.txDescLabel}>
-                      {isProjected && <span className={styles.badgeProjected}>Previsto</span>}
-                      {tx.recurrenceId && <span className={styles.badgeScheduled}>Recorrente</span>}  
-                    </div>                    
-                  </div>
+              
+              {/* BLOCO 1: DATA */}
+              <div className={styles.colDate}>
+                {formatDate(tx.date)}
+              </div>
+
+              {/* BLOCO 2: INFORMAÇÕES (Descrição + Badges) */}
+              <div className={styles.colInfo}>
+                <div className={styles.txDesc}>
+                  {tx.description}
+                </div>
+                <div className={styles.badgesWrapper}>
+                  {isProjected && <span className={styles.badgeProjected}>Previsto</span>}
+                  {tx.recurrenceId && <span className={styles.badgeScheduled}>Recorrente</span>}
                   {tx.category && (
-                    <div className={styles.txCat} style={{ color: tx.category.color }}>
-                      {tx.category.name}
-                    </div>
+                    <span className={styles.txCat} style={{ color: tx.category.color }}>
+                      • {tx.category.name}
+                    </span>
                   )}
                 </div>
               </div>
 
-              <div className={styles.rightGroup}>
-                <div className={`${styles.txAmount} ${Number(tx.amount) < 0 || tx.type === 'EXPENSE' ? styles.isExpense : styles.isIncome}`}>
-                  {formatCurrency(tx.amount)}
-                </div>
+              {/* BLOCO 3: VALOR */}
+              <div className={`${styles.colAmount} ${Number(tx.amount) < 0 || tx.type === 'EXPENSE' ? styles.isExpense : styles.isIncome}`}>
+                {formatCurrency(tx.amount)}
+              </div>
 
+              {/* BLOCO 4: AÇÕES */}
+              <div className={styles.colActions}>
                 {!isProjected ? (
                   <>
-                    <button className={styles.actionBtn} onClick={() => handleStartEdit(tx)} title="Editar">✎</button>
-                    <button className={`${styles.actionBtn} ${styles.btnDelete}`} onClick={() => handleDelete(tx.id, tx.description)} title="Excluir">🗑️</button>
+                    <button className={styles.actionBtn} onClick={() => handleStartEdit(tx)}>✎</button>
+                    <button className={`${styles.actionBtn} ${styles.btnDelete}`} onClick={() => handleDelete(tx.id, tx.description)}>🗑️</button>
                   </>
                 ) : (
-                  <div style={{ width: '48px', opacity: 0.3, textAlign: 'center', fontSize: '0.8rem' }}>⏳</div>
+                  <span className={styles.loadingIcon}>⏳</span>
                 )}
               </div>
             </div>

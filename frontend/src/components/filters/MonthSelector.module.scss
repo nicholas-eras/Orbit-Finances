@@ -13,10 +13,9 @@
   @media (max-width: 768px) {
     position: fixed; /* Fixa o elemento na tela */
     bottom: 20px;    /* 20px da borda inferior */
-    left: 50%;       /* Posiciona no meio horizontalmente */
-    transform: translateX(-50%); /* Ajuste fino para centralizar exato */
+    margin: 0 auto;
     
-    width: 90%;      /* Ocupa 90% da largura da tela */
+    width: 75%;      /* Ocupa 90% da largura da tela */
     max-width: 400px; /* Evita que fique gigante em tablets */
     z-index: 1000;   /* Garante que fique acima dos gráficos e listas */
     
