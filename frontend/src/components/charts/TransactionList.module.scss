@@ -3,26 +3,64 @@
   border-radius: 12px;
   padding: 1.5rem;
   border: 1px solid #334155;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* overflow removido daqui para controlar apenas a lista interna */
+  position: relative;
+}
+
+/* --- HEADER --- */
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 
   h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
+    margin: 0;
     color: white;
     font-size: 1.1rem;
   }
 }
 
-/* --- NOVO: SUMMARY BOARD --- */
+.btnToggleForm {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
+}
+
+/* --- CONTAINER DO FORMULÁRIO --- */
+.embeddedFormContainer {
+  margin-bottom: 1.5rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- SUMMARY BOARD --- */
 .summaryBoard {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: #0f172a;
-  padding: 0.8rem 1rem; /* Um pouco mais compacto que a de recorrência */
+  padding: 0.8rem 1rem;
   border-radius: 8px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem; /* Reduzi um pouco a margem inferior */
   border: 1px solid #334155;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
@@ -72,8 +110,35 @@
 .textIncome { color: #10b981; }
 .textExpense { color: #ef4444; }
 
-/* ... (O resto do seu CSS permanece inalterado: .loading, .txItem, .editingItem, etc.) ... */
+/* --- NOVO: CONTAINER DE ROLAGEM DA LISTA --- */
+.transactionsScroll {
+  /* Controla a altura máxima antes da barra aparecer. 
+     Aumente ou diminua os pixels conforme desejar. */
+  max-height: 600px; 
+  overflow-y: auto;
+  padding-right: 5px; /* Espaço para o texto não colar na barra */
 
+  /* Scrollbar Customizada (Chrome, Edge, Safari) */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #475569;
+    border-radius: 3px;
+    
+    &:hover {
+      background-color: #64748b;
+    }
+  }
+}
+
+/* --- ESTILOS DA LISTA (INTERNOS) --- */
 .loading,
 .empty {
   color: #94a3b8;
@@ -94,7 +159,6 @@
     border-bottom: none;
   }
 
-  /* 🔑 evita overflow em flex */
   .leftGroup,
   .rightGroup {
     min-width: 0;
@@ -153,20 +217,12 @@
     white-space: nowrap;
     flex-shrink: 0;
 
-    &.isIncome {
-      color: #10b981;
-    }
-
-    &.isExpense {
-      color: #ef4444;
-    }
+    &.isIncome { color: #10b981; }
+    &.isExpense { color: #ef4444; }
   }
 }
 
-/* =========================================
-   ITENS PROGRAMADOS / PROJETADOS
-   ========================================= */
-
+/* --- PROJETADOS --- */
 .projectedItem {
   opacity: 0.75;
   background-image: linear-gradient(90deg, #334155 50%, transparent 50%);
@@ -187,9 +243,7 @@
   }
 }
 
-/* =========================================
-   BADGE
-   ========================================= */
+/* --- BADGES --- */
 .badgeProjected {
   font-size: 0.7rem;
   background-color: rgba(255, 255, 255, 0.05);
@@ -215,32 +269,7 @@
   flex-shrink: 0;
 }
 
-/* =========================================
-   MOBILE
-   ========================================= */
-
-@media (max-width: 640px) {
-  .txItem {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .leftGroup {
-    gap: 0.75rem;
-  }
-
-  .rightGroup {
-    justify-content: space-between;
-  }
-}
-
-@media (max-width: 480px) {
-  .txAmount {
-    white-space: normal;
-  }
-}
-
+/* --- BOTÕES DE AÇÃO --- */
 .actionBtn {
   background: transparent;
   border: none;
@@ -265,7 +294,7 @@
   }
 }
 
-/* --- MODO EDIÇÃO (.editingItem) --- */
+/* --- MODO EDIÇÃO --- */
 .editingItem {
   background-color: #283648;
   border-left: 3px solid #3b82f6;
@@ -285,7 +314,6 @@
   align-items: center;
 }
 
-/* Inputs Pequenos (Mini) */
 .miniInputDate, .miniInputText, .miniSelect, .miniInputAmount {
   background: #0f172a;
   border: 1px solid #475569;
@@ -305,7 +333,6 @@
 .miniInputText { flex: 1; min-width: 120px; }
 .miniSelect { width: 110px; }
 
-/* Wrapper para Tipo (+/-) e Valor */
 .amountInputWrapper {
   display: flex;
   align-items: center;
@@ -330,7 +357,6 @@
   }
 }
 
-/* Botões Salvar/Cancelar */
 .editActions {
   display: flex;
   gap: 5px;
@@ -363,25 +389,29 @@
 
 /* --- MOBILE --- */
 @media (max-width: 640px) {
-  .editingItem {
+  .txItem, .editingItem {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
   }
 
+  .leftGroup { gap: 0.75rem; }
+  .rightGroup { justify-content: space-between; }
+  
   .editInputsGroup {
     flex-direction: column;
     align-items: stretch;
     
-    input, select, .amountInputWrapper {
-      width: 100%;
-    }
-    
-    .miniInputDate { width: 100%; }
-    .miniSelect { width: 100%; }
+    input, select, .amountInputWrapper { width: 100%; }
+    .miniInputDate, .miniSelect { width: 100%; }
   }
   
   .editActions {
     justify-content: flex-end;
     margin-top: 5px;
   }
+}
+
+@media (max-width: 480px) {
+  .txAmount { white-space: normal; }
 }

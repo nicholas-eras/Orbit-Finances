@@ -11,7 +11,6 @@ import DoughnutChart from "../../components/charts/DoughnutChart";
 import RecurrenceBox from "../../components/charts/RecurrenceBox"; 
 import TransactionList from "../../components/charts/TransactionList";
 import MonthSelector from "../../components/filters/MonthSelector";
-import TransactionForm from "../../components/forms/TransactionForm";
 
 // APIs
 import { getTransactions } from "../../api/transactions";
@@ -202,14 +201,14 @@ export default function DashboardPage() {
       {/* Área de Gerenciamento */}
       <div className={styles.gridLayout}>
         <div className={styles.leftCol}>
-          <TransactionForm 
-            categories={categoriesList} 
-            onUpdated={handleTransactionUpdate} 
-          />
           <RecurrenceBox 
             categories={categoriesList} 
             // @ts-ignore
             onUpdate={handleTransactionUpdate}
+          />
+          <CategoryManager 
+            categories={categoriesList} 
+            onUpdate={fetchCategoriesData} 
           />
         </div>
         <div className={styles.rightCol}>
@@ -218,10 +217,6 @@ export default function DashboardPage() {
             year={undefined}
             onUpdate={handleTransactionUpdate} 
             transactions={transactions}
-          />
-          <CategoryManager 
-            categories={categoriesList} 
-            onUpdate={fetchCategoriesData} 
           />
         </div>
       </div>

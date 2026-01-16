@@ -4,16 +4,41 @@
   border-radius: 12px;
   border: 1px solid #334155;
 
+  @media (max-width: 480px) {
+    padding: 1rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* --- NOVO HEADER (Para alinhar Título e Botão) --- */
+.boxHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
   h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
+    margin: 0;
     color: #e2e8f0;
     font-size: 1.1rem;
   }
+}
 
-  @media (max-width: 480px) {
-    padding: 1rem;
-    margin-bottom: 4rem;
+/* --- BOTÃO DE TOGGLE (Estilo igual ao da Lista) --- */
+.btnToggleForm {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
   }
 }
 
@@ -51,15 +76,13 @@
   }
 
   strong {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
   }
   
-  /* Mobile: label na esquerda, valor na direita */
   @media (max-width: 600px) {
     flex-direction: row;
     justify-content: space-between;
-    strong { font-size: 1rem; }
   }
 }
 
@@ -69,9 +92,7 @@
   background: #334155;
   margin: 0 1rem;
 
-  @media (max-width: 600px) {
-    display: none; 
-  }
+  @media (max-width: 600px) { display: none; }
 }
 
 .textIncome { color: #10b981; }
@@ -120,10 +141,7 @@
       flex-wrap: wrap;
       gap: 8px;
       
-      small { 
-        color: #94a3b8; 
-        font-size: 0.75rem; 
-      }
+      small { color: #94a3b8; font-size: 0.75rem; }
 
       .catBadge {
         font-size: 0.75rem;
@@ -144,6 +162,7 @@
       gap: 4px;
       width: 100%;
       justify-content: space-between;
+      margin-top: 8px;
     }
   }
 
@@ -156,7 +175,7 @@
     &.isIncome { color: #10b981; }
   }
 
-  .deleteBtn {
+  .editBtn, .deleteBtn {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -168,13 +187,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-    }
   }
+
+  .editBtn { color: #fbbf24; &:hover { opacity: 1; background: rgba(251, 191, 36, 0.1); } }
+  .deleteBtn { color: #94a3b8; &:hover { opacity: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; } }
+}
+
+.itemEditing {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+  padding-left: 10px;
 }
 
 .empty {
@@ -184,12 +206,13 @@
   padding: 1rem 0;
 }
 
-/* --- FORMULÁRIO --- */
+/* --- FORMULÁRIO (Com Animação) --- */
 .addForm {
   margin-top: 1.5rem;
   background: #0f172a;
   padding: 1.25rem;
   border-radius: 8px;
+  animation: slideDown 0.3s ease-out; /* Animação ao abrir */
 
   h4 { 
     margin-top: 0; 
@@ -216,17 +239,8 @@
       background: transparent;
       transition: all 0.2s;
   
-      &.active.btnExpense {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border-color: #ef4444;
-      }
-  
-      &.active.btnIncome {
-        background: rgba(16, 185, 129, 0.1);
-        color: #10b981;
-        border-color: #10b981;
-      }
+      &.active.btnExpense { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: #ef4444; }
+      &.active.btnIncome { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
     }
   }
 
@@ -236,17 +250,11 @@
     gap: 12px;
     align-items: center;
     
-    @media (max-width: 640px) {
-      grid-template-columns: 1fr;
-    }
+    @media (max-width: 640px) { grid-template-columns: 1fr; }
 
-    & > input:first-of-type {
-      grid-column: 1 / -1;
-    }
+    & > input:first-of-type { grid-column: 1 / -1; }
     
-    & > input, 
-    & > select, 
-    & > button {
+    & > input, & > select, & > button {
       padding: 0 12px;
       height: 42px;
       border-radius: 6px;
@@ -257,14 +265,8 @@
       width: 100%;
       box-sizing: border-box;
       
-      &:focus {
-        outline: none;
-        border-color: #8b5cf6;
-      }
-
-      &.placeholder {
-        color: #94a3b8;
-      }
+      &:focus { outline: none; border-color: #8b5cf6; }
+      &.placeholder { color: #94a3b8; }
     }
 
     & > button {
@@ -275,9 +277,6 @@
       cursor: pointer;
       margin-top: 0.5rem;
       transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       
       &:hover { background: #7c3aed; }
       &:active { transform: translateY(1px); }
@@ -297,11 +296,7 @@
   width: 100%;
   box-sizing: border-box;
 
-  span {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    white-space: nowrap;
-  }
+  span { font-size: 0.85rem; color: #94a3b8; white-space: nowrap; }
 
   input, select {
     border: none !important;
@@ -310,12 +305,7 @@
     height: 100% !important;
     color: white !important;
     font-size: 0.9rem !important;
-    
-    &:focus { 
-      border: none !important; 
-      box-shadow: none !important; 
-      outline: none !important;
-    }
+    &:focus { border: none !important; box-shadow: none !important; outline: none !important; }
   }
 
   .intervalInput {
@@ -332,33 +322,7 @@
     flex: 1;
     cursor: pointer;
     text-align: right;
-    
-    option {
-      background: #1e293b;
-      color: white;
-    }
-  }
-}
-
-.itemEditing {
-  background-color: rgba(59, 130, 246, 0.1);
-  border-left: 3px solid #3b82f6;
-  padding-left: 10px;
-}
-
-.editBtn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1rem;
-  padding: 6px;
-  border-radius: 4px;
-  opacity: 0.6;
-  color: #fbbf24;
-
-  &:hover {
-    opacity: 1;
-    background-color: rgba(251, 191, 36, 0.1);
+    option { background: #1e293b; color: white; }
   }
 }
 
@@ -373,8 +337,6 @@
   align-items: center;
   margin-bottom: 1rem;
 
-  h4 { margin: 0; }
-  
   .cancelLink {
     background: none;
     border: none;
@@ -389,8 +351,10 @@
 .saveUpdateBtn {
   background-color: #10b981 !important;
   border-color: #10b981 !important;
-  
-  &:hover {
-    background-color: #059669 !important;
-  }
+  &:hover { background-color: #059669 !important; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

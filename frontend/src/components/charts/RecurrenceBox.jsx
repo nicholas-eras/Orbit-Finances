@@ -5,8 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import styles from './RecurrenceBox.module.scss';
 import { getRecurrences, createRecurrence, deleteRecurrence, updateRecurrence } from '../../api/recurrences';
 
-// --- Funções Auxiliares ---
-
+// --- Funções Auxiliares (Mantidas iguais) ---
 const getTodayString = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -33,32 +32,24 @@ const formatFrequency = (freq, interval) => {
   return `A cada ${interval} ${unit.plural}`;
 };
 
-// --- Lógica de Cálculo "Esperta" ---
-// Normaliza qualquer frequência para uma estimativa MENSAL
 const calculateMonthlyProjection = (amount, frequency, interval) => {
   const value = Math.abs(Number(amount)); 
   const intr = Number(interval) || 1;
-
   switch (frequency) {
-    case 'DAILY':
-      // Ex: 10 reais por dia = 300 por mês
-      return (value * 30) / intr;
-    case 'WEEKLY':
-      // Ex: 100 por semana. O ano tem 52 semanas e 12 meses.
-      // (100 * 52) / 12 = 433,33 (Média ponderada, pois meses não têm exatamente 4 semanas)
-      return (value * 52) / 12 / intr;
-    case 'MONTHLY':
-      return value / intr;
-    case 'YEARLY':
-      return value / 12 / intr;
-    default:
-      return value;
+    case 'DAILY': return (value * 30) / intr;
+    case 'WEEKLY': return (value * 52) / 12 / intr;
+    case 'MONTHLY': return value / intr;
+    case 'YEARLY': return value / 12 / intr;
+    default: return value;
   }
 };
 
 export default function RecurrenceBox({ categories = [], onUpdate }) {
   const [list, setList] = useState([]);
   
+  // 1. NOVO ESTADO DE VISIBILIDADE
+  const [showAddForm, setShowAddForm] = useState(false);
+
   // Estados do Formulário
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -84,34 +75,19 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
     fetchRecurrences();
   }, []);
 
-  // ========================================
-  // CALCULAR TOTAIS (MEMOIZED)
-  // ========================================
   const summary = useMemo(() => {
     let income = 0;
     let expense = 0;
-
     list.forEach(rec => {
-      // Projeta o impacto mensal
       const monthlyVal = calculateMonthlyProjection(rec.originalAmount, rec.frequency, rec.interval);
-
-      // Se o valor original for negativo, conta como despesa
-      if (Number(rec.originalAmount) < 0) {
-        expense += monthlyVal;
-      } else {
-        income += monthlyVal;
-      }
+      if (Number(rec.originalAmount) < 0) expense += monthlyVal;
+      else income += monthlyVal;
     });
-
-    return {
-      income,
-      expense,
-      balance: income - expense
-    };
+    return { income, expense, balance: income - expense };
   }, [list]);
 
   // ========================================
-  // AÇÕES (Editar, Cancelar, Salvar, Deletar)
+  // AÇÕES
   // ========================================
   function handleStartEdit(rec) {
     setEditingId(rec.id);
@@ -119,18 +95,31 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
     setAmount(Math.abs(rec.originalAmount));
     setType(Number(rec.originalAmount) < 0 ? 'EXPENSE' : 'INCOME');
     
-    const isoDate = new Date(rec.startDate).toISOString().split('T')[0];
-    setStartDate(isoDate);
+    const dateObj = new Date(rec.startDate);
+    if(!isNaN(dateObj)) {
+        setStartDate(dateObj.toISOString().split('T')[0]);
+    }
 
     setSelectedCategoryId(rec.categoryId || '');
     setInterval(rec.interval);
     setFrequency(rec.frequency);
     
-    document.querySelector(`.${styles.addForm}`).scrollIntoView({ behavior: 'smooth' });
+    // 2. FORÇA O FORM A ABRIR QUANDO CLICA EM EDITAR
+    setShowAddForm(true);
+    
+    // Pequeno timeout para garantir que o DOM renderizou o form antes do scroll
+    setTimeout(() => {
+        const formEl = document.querySelector(`.${styles.addForm}`);
+        if(formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   }
 
   function handleCancelEdit() {
+    // 3. FECHA O FORM AO CANCELAR
+    setShowAddForm(false);
     setEditingId(null);
+    
+    // Limpa os campos
     setDescription('');
     setAmount('');
     setStartDate(getTodayString());
@@ -138,6 +127,15 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
     setInterval(1);
     setFrequency('MONTHLY');
     setType('EXPENSE');
+  }
+
+  // Função auxiliar para o botão de toggle no Header
+  function toggleForm() {
+    if (showAddForm) {
+        handleCancelEdit(); // Se estiver aberto, fecha e limpa
+    } else {
+        setShowAddForm(true); // Se fechado, abre
+    }
   }
 
   async function handleSave() {
@@ -160,14 +158,13 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
       if (editingId) {
         await updateRecurrence(editingId, payload);
         await fetchRecurrences(); 
-        setEditingId(null); 
       } else {
         const newRec = await createRecurrence(payload);
         setList(prev => [...prev, newRec]);
       }
 
       if (onUpdate) onUpdate();
-      handleCancelEdit(); // Limpa form
+      handleCancelEdit(); // Fecha o form e limpa tudo
 
     } catch (err) {
       console.error('Erro ao salvar:', err);
@@ -187,22 +184,76 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
 
   return (
     <div className={styles.recurrenceBox}>
-      <h3>Contas Fixas & Assinaturas</h3>
+      
+      {/* 4. HEADER REESTRUTURADO */}
+      <div className={styles.boxHeader}>
+        <h3>Contas Fixas & Assinaturas</h3>
+        <button 
+          className={styles.btnToggleForm} 
+          onClick={toggleForm}
+        >
+          {showAddForm ? '✕ Fechar' : '+ Nova'}
+        </button>
+      </div>
 
-      {/* --- DASHBOARD DE RESUMO --- */}
+      {/* 5. RENDERIZAÇÃO CONDICIONAL COM ANIMAÇÃO */}
+      {showAddForm && (
+          <div className={`${styles.addForm} ${editingId ? styles.formEditing : ''}`}>
+            <div className={styles.formHeader}>
+              <h4>{editingId ? 'Editar Recorrência' : 'Nova Recorrência'}</h4>
+              {/* O botão cancelar aqui dentro pode ser redundante com o "Fechar" lá em cima, 
+                  mas é bom manter para UX de formulário */}
+              <button onClick={handleCancelEdit} className={styles.cancelLink}>
+                Cancelar
+              </button>
+            </div>
+
+            <div className={styles.typeToggle}>
+              <button type="button" className={`${type === 'EXPENSE' ? styles.active : ''} ${styles.btnExpense}`} onClick={() => setType('EXPENSE')}>Saída</button>
+              <button type="button" className={`${type === 'INCOME' ? styles.active : ''} ${styles.btnIncome}`} onClick={() => setType('INCOME')}>Entrada</button>
+            </div>
+            
+            <div className={styles.inputs}>
+              <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Seguro Carro" autoFocus />
+              <select value={selectedCategoryId} onChange={e => setSelectedCategoryId(e.target.value)} className={!selectedCategoryId ? styles.placeholder : ''}>
+                <option value="" disabled>Categoria</option>
+                {categories.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Valor" />
+              
+              <div className={styles.frequencyControl}>
+                <span>A cada</span>
+                <input type="number" min="1" value={interval} onChange={e => setInterval(Number(e.target.value))} className={styles.intervalInput} />
+                <select value={frequency} onChange={e => setFrequency(e.target.value)}>
+                  <option value="DAILY">Dia(s)</option>
+                  <option value="WEEKLY">Semana(s)</option>
+                  <option value="MONTHLY">Mês(es)</option>
+                  <option value="YEARLY">Ano(s)</option>
+                </select>
+              </div>
+              
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              
+              <button onClick={handleSave} className={editingId ? styles.saveUpdateBtn : ''}>
+                {editingId ? 'Salvar Alterações' : 'Adicionar'}
+              </button>
+            </div>
+          </div>
+      )}
+
       <div className={styles.summaryBoard}>
         <div className={styles.sumItem}>
-          <span>Receita Mensal (Est.)</span>
+          <span>Receita (Est.)</span>
           <strong className={styles.textIncome}>{formatCurrency(summary.income)}</strong>
         </div>
         <div className={styles.divider}></div>
         <div className={styles.sumItem}>
-          <span>Despesa Mensal (Est.)</span>
+          <span>Despesa (Est.)</span>
           <strong className={styles.textExpense}>{formatCurrency(summary.expense)}</strong>
         </div>
         <div className={styles.divider}></div>
         <div className={styles.sumItem}>
-          <span>Balanço Recorrente</span>
+          <span>Balanço</span>
           <strong className={summary.balance >= 0 ? styles.textIncome : styles.textExpense}>
             {formatCurrency(summary.balance)}
           </strong>
@@ -229,59 +280,13 @@ export default function RecurrenceBox({ categories = [], onUpdate }) {
                 {formatCurrency(rec.originalAmount)}
               </div>
               
-              <button className={styles.editBtn} onClick={() => handleStartEdit(rec)} title="Editar">
-                ✎
-              </button>
-              <button className={styles.deleteBtn} onClick={() => handleDelete(rec.id, rec.description)} title="Excluir">
-                🗑️
-              </button>
+              <button className={styles.editBtn} onClick={() => handleStartEdit(rec)} title="Editar">✎</button>
+              <button className={styles.deleteBtn} onClick={() => handleDelete(rec.id, rec.description)} title="Excluir">🗑️</button>
             </div>
           </div>
         ))}
         {list.length === 0 && <div className={styles.empty}>Nenhuma recorrência ainda.</div>}
-      </div>
-
-      <div className={`${styles.addForm} ${editingId ? styles.formEditing : ''}`}>
-        <div className={styles.formHeader}>
-          <h4>{editingId ? 'Editar Recorrência' : 'Nova Recorrência'}</h4>
-          {editingId && (
-            <button onClick={handleCancelEdit} className={styles.cancelLink}>
-              Cancelar
-            </button>
-          )}
-        </div>
-
-        <div className={styles.typeToggle}>
-          <button type="button" className={`${type === 'EXPENSE' ? styles.active : ''} ${styles.btnExpense}`} onClick={() => setType('EXPENSE')}>Saída</button>
-          <button type="button" className={`${type === 'INCOME' ? styles.active : ''} ${styles.btnIncome}`} onClick={() => setType('INCOME')}>Entrada</button>
-        </div>
-        
-        <div className={styles.inputs}>
-          <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Seguro Carro" />
-          <select value={selectedCategoryId} onChange={e => setSelectedCategoryId(e.target.value)} className={!selectedCategoryId ? styles.placeholder : ''}>
-            <option value="" disabled>Categoria</option>
-            {categories.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-          <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Valor" />
-          
-          <div className={styles.frequencyControl}>
-            <span>A cada</span>
-            <input type="number" min="1" value={interval} onChange={e => setInterval(Number(e.target.value))} className={styles.intervalInput} />
-            <select value={frequency} onChange={e => setFrequency(e.target.value)}>
-              <option value="DAILY">Dia(s)</option>
-              <option value="WEEKLY">Semana(s)</option>
-              <option value="MONTHLY">Mês(es)</option>
-              <option value="YEARLY">Ano(s)</option>
-            </select>
-          </div>
-          
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          
-          <button onClick={handleSave} className={editingId ? styles.saveUpdateBtn : ''}>
-            {editingId ? 'Salvar Alterações' : 'Adicionar'}
-          </button>
-        </div>
-      </div>
+      </div>     
     </div>
   );
 }
