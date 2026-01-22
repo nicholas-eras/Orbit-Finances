@@ -20,23 +20,21 @@
       display: flex;
       align-items: center;
       gap: 15px;
-      flex-wrap: wrap; // Permite que a badge caia se faltar espaço
-    }
-
-    // --- NOVO: Agrupamento do Botão + Calendário ---
-    .headerControls {
-      display: flex;
-      align-items: center;
-      gap: 1rem; // Espaço entre o botão e o seletor de mês
       flex-wrap: wrap;
     }
 
-    // --- NOVO: Estilo do Botão Importar ---
+    .headerControls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
     .btnImport {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #334155; // Slate-700 (sutil para não brigar com o resto)
+      background: #334155;
       color: #e2e8f0;
       padding: 8px 16px;
       border-radius: 8px;
@@ -47,7 +45,7 @@
       transition: all 0.2s ease;
 
       &:hover {
-        background: #3b82f6; // Azul no hover para destacar ação
+        background: #3b82f6;
         border-color: #3b82f6;
         color: white;
         transform: translateY(-1px);
@@ -78,7 +76,7 @@
       width: 100%;
       height: 100%;
       background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(2px); // Um toque visual agradável
+      backdrop-filter: blur(2px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -103,7 +101,6 @@
   /* ================= CARDS DE RESUMO ================= */
   .summaryCards {
     display: grid;
-    // Desktop: 3 colunas iguais
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
     margin-bottom: 1.5rem;
@@ -134,57 +131,155 @@
       .textRed { color: #ef4444; }
     }
 
+    /* Estilos Específicos do Card de Saldo */
+    
+    /* Estilos Específicos do Card de Saldo */
     .card.balance {
-    // ... estilos anteriores ...
-
-    .bankReference {
-      margin-top: 12px;
-      width: 100%;
-    }
-
-    .divider {
-      height: 1px;
-      background: #334155;
-      margin-bottom: 8px;
-      width: 100%;
-    }
-
-    .bankRow {
+      // Layout Horizontal (Desktop)
       display: flex;
+      flex-direction: row; 
       justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-      color: #94a3b8;
+      gap: 1rem;
 
-      strong {
-        color: #e2e8f0; // Cor clara para o valor
+      // Colunas individuais
+      .balanceColumn {
+        flex: 1; // Cada coluna ocupa espaço igual
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+
+        // Estilos do Projetado (Coluna 1)
+        span {
+          font-size: 0.85rem;
+          color: #94a3b8;
+          font-weight: 500;
+        }
+
+        h3 {
+          margin: 0; // Remove margens antigas
+          font-size: 1.5rem;
+          font-weight: 700;
+        }
+      }
+
+      // Linha Vertical divisória
+      .verticalDivider {
+        width: 1px;
+        background: #334155;
+        align-self: stretch; // Estica a linha na altura do card
+        opacity: 0.5;
+        margin: 0 10px;
+      }
+
+      // Estilos do Real (Coluna 2)
+      .bankLabel {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        font-weight: 500;
+        text-transform: uppercase;
+        white-space: nowrap; // Impede que a data quebre linha feio
+      }
+
+      .editableValue {
+        font-size: 1.5rem; // Tamanho igual ao H3 do projetado
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: opacity 0.2s;
+
+        &.positive { color: #10b981; }
+        &.negative { color: #ef4444; }
+
+        .editIcon {
+          font-size: 1rem;
+          opacity: 0.5;
+        }
+
+        &:hover {
+          opacity: 0.8;
+          .editIcon { opacity: 1; }
+        }
+      }
+
+      /* MODO EDIÇÃO */
+      .editContainer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .bigInput {
+          background: #0f172a;
+          border: 1px solid #475569;
+          color: white;
+          font-size: 1.1rem;
+          font-weight: bold;
+          padding: 4px 8px;
+          border-radius: 6px;
+          width: 120px; // Um pouco menor para caber lado a lado
+          outline: none;
+        }
+
+        .editActions { display: flex; gap: 4px; }
+        
+        .btnAction {
+          border: none;
+          border-radius: 4px;
+          width: 28px;
+          height: 28px;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          
+          &.save { background: #10b981; color: #022c22; }
+          &.cancel { background: #ef4444; color: #450a0a; }
+        }
+      }
+
+      .diff {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-style: italic;
       }
     }
 
-    .diff {
-      display: block;
-      text-align: right;
-      font-size: 0.75rem;
-      color: #64748b; // Cor discreta
-      margin-top: 2px;
+    /* RESPONSIVIDADE ESPECÍFICA PARA O CARD DE SALDO */
+    @media (max-width: 1024px) { // Tablet e Mobile
+      .card.balance {
+        flex-direction: column; // Vira vertical
+
+        .verticalDivider {
+          width: 100%; // Vira linha horizontal
+          height: 1px;
+          margin: 0;
+        }
+
+        .balanceColumn {
+          width: 100%;
+        }
+        
+        // Ajuste no input mobile para não quebrar layout
+        .editContainer .bigInput {
+             width: 100%; 
+        }
+      }
     }
   }
-    }
 
-    /* ================= GRÁFICOS ================= */
-    .chartsGrid {
+  /* ================= GRÁFICOS ================= */
+  .chartsGrid {
     display: grid;
-    // Desktop: 3 colunas no total (2/3 para linha, 1/3 para rosca)
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
     margin-bottom: 1.5rem;
 
     .mainChart {
-      grid-column: span 2; // Ocupa 2 espaços
-      min-height: 350px; // Altura mínima para o gráfico não sumir
+      grid-column: span 2;
+      min-height: 350px;
       padding: 0 !important;
 
-      h3{
+      h3 {
         padding: 1.5rem;
         padding-bottom: 0;
       }
@@ -195,12 +290,13 @@
       min-height: 350px;
       display: flex;
       flex-direction: column;
+      align-items: center; /* Centraliza o gráfico */
     }
 
     .chartSection {
       background: #1e293b;
       border-radius: 12px;
-      padding: 1.5rem; // Mais respiro interno
+      padding: 1.5rem;
       border: 1px solid #334155;
       position: relative;
 
@@ -209,6 +305,7 @@
         font-size: 1rem;
         color: #94a3b8;
         font-weight: 600;
+        width: 100%; /* Garante alinhamento do título */
       }
 
       .loading, .noData {
@@ -220,47 +317,39 @@
     }
   }
 
-  /* ================= GERENCIAMENTO (Form e Listas) ================= */
+  /* ================= GERENCIAMENTO ================= */
   .gridLayout {
     display: grid;
-    grid-template-columns: 1fr 1fr; // Desktop: Meio a meio
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
 
     .leftCol, .rightCol {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem; // Espaço entre componentes verticais (ex: Form e Recurrence)
+      gap: 1.5rem;
     }
   }
 
   /* ================= RESPONSIVIDADE ================= */
-
-  /* Tablet (até 1024px) */
   @media (max-width: 1024px) {
-    padding: 2rem 2rem; // Reduz padding lateral
+    padding: 2rem 2rem;
 
     .chartsGrid {
-      grid-template-columns: 1fr; // Vira 1 coluna só
+      grid-template-columns: 1fr;
 
       .mainChart, .donutChart {
-        grid-column: span 1; // Reseta o span
-        min-height: auto; // Deixa altura automática
-      }
-      
-      // Opcional: Limitar largura do Donut em tablets para não ficar gigante
-      .donutChart {
-        align-items: center; 
+        grid-column: span 1;
+        min-height: auto;
       }
     }
   }
 
-  /* Mobile (até 768px) */
   @media (max-width: 768px) {
-    padding: 1.5rem 1rem; // Padding bem menor para mobile
+    padding: 1.5rem 1rem;
 
     header {
       flex-direction: column;
-      align-items: stretch; // Estica os itens
+      align-items: stretch;
       gap: 1rem;
 
       .headerLeft {
@@ -268,30 +357,23 @@
         width: 100%;
       }
       
-      // Ajuste fino para o seletor de mês ocupar largura total se necessário
       :global(.month-selector) {
         width: 100%;
       }
     }
 
     .summaryCards {
-      grid-template-columns: 1fr; // Pilha de cards (um por linha)
+      grid-template-columns: 1fr;
       
       .card h3 {
-        font-size: 1.5rem; // Fonte um pouco menor
+        font-size: 1.5rem;
       }
     }
 
     .gridLayout {
-      grid-template-columns: 1fr; // Pilha formulário em cima da lista
-    }
-
-    .gridLayout {
+      grid-template-columns: 1fr;
       display: flex;
       flex-direction: column-reverse;
     }
   }
-}
-.donutChart {
-  align-items: center; // Centraliza o gráfico se ele tiver largura fixa
 }

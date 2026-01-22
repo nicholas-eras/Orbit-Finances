@@ -16,6 +16,7 @@ import MonthSelector from "../../components/filters/MonthSelector";
 import { getTransactions } from "../../api/transactions";
 import { getCategories } from "../../api/categories";
 import { getDashboardAnalytics } from "../../api/dashboard";
+import { updateBankBalance } from "../../api/users";
 
 export default function DashboardPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -38,6 +39,36 @@ export default function DashboardPage() {
 
   const [health, setHealth] = useState('HEALTHY');
   const [loading, setLoading] = useState(true);
+
+  const [isEditingBalance, setIsEditingBalance] = useState(false);
+  const [tempBalanceValue, setTempBalanceValue] = useState("");
+
+  const handleStartEditing = () => {
+    setTempBalanceValue(bankBalance?.balance || 0);
+    setIsEditingBalance(true);
+  };
+
+  // NOVA FUNÇÃO: Salvar novo saldo
+  const handleSaveBalance = async () => {
+    try {
+      // 1. Atualiza no Backend
+      await updateBankBalance(tempBalanceValue);
+      
+      // 2. Atualiza visualmente (Optimistic Update) ou recarrega
+      setBankBalance({
+        balance: tempBalanceValue,
+        date: new Date().toISOString() // Atualiza a data visualmente para "hoje"
+      });
+      
+      setIsEditingBalance(false);
+      
+      // Opcional: Recalcular o dashboard para atualizar a "Diferença"
+      fetchDashboard(currentDate); 
+    } catch (error) {
+      alert("Erro ao atualizar saldo");
+      console.error(error);
+    }
+  };
 
   // Busca Categorias
   async function fetchCategoriesData() {
@@ -153,28 +184,63 @@ export default function DashboardPage() {
         </div>
         {/* CARD DE SALDO REFORMULADO */}
         <div className={`${styles.card} ${styles.balance}`}>
+  
+        {/* --- COLUNA 1: SALDO PROJETADO --- */}
+        <div className={styles.balanceColumn}>
           <span>Saldo Final Projetado</span>
-          
-          {/* Valor do Sistema */}
           <h3 className={summary.endOfMonth.finalBalance < 0 ? styles.textRed : ''}>
             {formatMoney(summary.endOfMonth.finalBalance)}
           </h3>
-
-          {/* Comparação com Banco */}
-          {bankBalance && (
-            <div className={styles.bankReference}>
-                <div className={styles.divider}></div>
-                <div className={styles.bankRow}>
-                    <span>🏦 Banco ({new Date(bankBalance.date).toLocaleDateString()}):</span>
-                    <strong>{formatMoney(Number(bankBalance.balance))}</strong>
-                </div>
-                {/* Diferença Visual */}
-                <small className={styles.diff}>
-                    Diferença: {formatMoney(Number(bankBalance.balance) - summary.endOfMonth.finalBalance)}
-                </small>
-            </div>
-          )}
         </div>
+
+        {/* Separador Visual (apenas decorativo) */}
+        <div className={styles.verticalDivider}></div>
+
+        {/* --- COLUNA 2: SALDO REAL (BANCO) --- */}
+        {bankBalance && (
+          <div className={styles.balanceColumn}>
+            <span className={styles.bankLabel}>
+              🏦 Saldo Real ({new Date(bankBalance.date).toLocaleDateString()})
+            </span>
+
+            {/* LÓGICA DE EDIÇÃO */}
+            {isEditingBalance ? (
+              <div className={styles.editContainer}>
+                <input
+                  type="number"
+                  value={tempBalanceValue}
+                  onChange={(e) => setTempBalanceValue(e.target.value)}
+                  autoFocus
+                  className={styles.bigInput}
+                />
+                <div className={styles.editActions}>
+                  <button className={`${styles.btnAction} ${styles.save}`} onClick={handleSaveBalance}>✓</button>
+                  <button className={`${styles.btnAction} ${styles.cancel}`} onClick={() => setIsEditingBalance(false)}>✕</button>
+                </div>
+              </div>
+            ) : (
+              <strong
+                className={`
+                  ${styles.editableValue} 
+                  ${Number(bankBalance.balance) >= 0 ? styles.positive : styles.negative}
+                `}
+                onClick={handleStartEditing}
+                title="Clique para editar"
+              >
+                {formatMoney(Number(bankBalance.balance))}
+                <span className={styles.editIcon}>✏️</span>
+              </strong>
+            )}
+
+            {/* Diferença */}
+            {!isEditingBalance && (
+              <small className={styles.diff}>
+                Diff: {formatMoney(Number(bankBalance.balance) - summary.endOfMonth.finalBalance)}
+              </small>
+            )}
+          </div>
+        )}
+      </div>
       </div>
 
       {/* Área dos Gráficos */}

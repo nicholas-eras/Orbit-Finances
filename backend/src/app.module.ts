@@ -9,6 +9,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { RecurrencesModule } from './recurrences/recurrences.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TransactionsModule,
     RecurrencesModule,
     AnalyticsModule,
+    UsersModule,
     ScheduleModule.forRoot()
   ],
   controllers: [AppController],
