@@ -3,7 +3,7 @@ import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import serverlessExpress from '@vendia/serverless-express';
 import express from 'express';
-import * as cookieParser from 'cookie-parser';
+const cookieParser = require('cookie-parser'); 
 
 const server = express();
 
