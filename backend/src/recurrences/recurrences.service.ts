@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CreateRecurrenceDto } from './dto/create-recurrence.dto';
 import { startOfDay, addDays, addMonths, addWeeks, addYears, isBefore, isAfter, isSameDay } from 'date-fns';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RecurrencesService {
