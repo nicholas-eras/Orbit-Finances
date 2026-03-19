@@ -27,7 +27,8 @@ export class AuthController {
     res.cookie('orbit_token', jwtResult.access_token, {
       httpOnly: true, // não acessível via JS
       secure: this.configService.get('NODE_ENV') === 'production', // HTTPS apenas em produção
-      sameSite: 'strict', // proteção máxima contra CSRF
+      sameSite: 'lax', 
+      domain: '.orbit-finances.com.br',
       path: '/',
       maxAge: 1000 * 60 * 60 * 24, // 1 dia
     });
