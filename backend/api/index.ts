@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import serverlessExpress from '@vendia/serverless-express';
 import express from 'express';
@@ -33,6 +33,7 @@ async function bootstrap() {
   return cachedHandler;
 }
 
-if (process.env.NODE_ENV !== 'production') {
-  bootstrap();
+export default async function handler(req, res) {
+  const server = await bootstrap();
+  return server(req, res);
 }
