@@ -1,22 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import serverlessExpress from '@vendia/serverless-express';
 import express from 'express';
 const cookieParser = require('cookie-parser'); 
 
-const server = express();
+const expressApp = express();
 
-let cachedHandler;
+let app;
 
 async function bootstrap() {
-  if (!cachedHandler) {
-    const app = await NestFactory.create(
+  if (!app) {
+    app = await NestFactory.create(
       AppModule,
-      new ExpressAdapter(server),
+      new ExpressAdapter(expressApp),
     );
 
-    server.set('trust proxy', 1);
+    expressApp.set('trust proxy', 1);
 
     app.use(cookieParser());
 
@@ -26,11 +25,9 @@ async function bootstrap() {
     });
 
     await app.init();
-
-    cachedHandler = serverlessExpress({ app: server });
   }
 
-  return cachedHandler;
+  return expressApp;
 }
 
 export default async function handler(req, res) {

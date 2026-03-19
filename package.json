@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@vendia/serverless-express": "^4.12.6",
     "express": "^5.2.1"
   }
 }
